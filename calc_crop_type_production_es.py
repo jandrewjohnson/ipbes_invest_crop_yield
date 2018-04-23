@@ -25,8 +25,8 @@ from collections import OrderedDict
 import logging
 import scipy
 
-import numdal as nd
-import geoecon as ge
+#import numdal as nd
+#import geoecon as ge
 import multiprocessing
 
 
@@ -60,7 +60,7 @@ def get_default_kw(**kw):
     # kw['intermediate_dir'] =  kw.get('input_dir', os.path.join(kw['project_dir'], kw['temporary_dir']))  # If generating lots of data, set this to temporary_dir so that you don't put huge data into the cloud.
     kw['intermediate_dir'] = kw.get('intermediate_dir', os.path.join(kw['project_dir'], 'intermediate'))  # If generating lots of data, set this to temporary_dir so that you don't put huge data into the cloud.
     kw['output_dir'] = kw.get('output_dir', os.path.join(kw['project_dir'], 'output'))  # the final working run is move form Intermediate to here and any hand-made docs are put here.
-    kw['run_string'] = kw.get('run_string', nd.pretty_time())  # unique string with time-stamp. To be used on run_specific identifications.
+    kw['run_string'] = kw.get('run_string', hb.pretty_time())  # unique string with time-stamp. To be used on run_specific identifications.
     kw['run_dir'] = kw.get('run_dir', os.path.join(kw['temporary_dir'], '0_seals_' + kw['run_string']))  # ready to delete dir containing the results of one run.
     kw['basis_name'] = kw.get('basis_name', '')  # Specify a manually-created dir that contains a subset of results that you want to use. For any input that is not created fresh this run, it will instead take the equivilent file from here. Default is '' because you may not want any subsetting.
     kw['basis_dir'] = kw.get('basis_dir', os.path.join(kw['intermediate_dir'], kw['basis_name']))  # Specify a manually-created dir that contains a subset of results that you want to use. For any input that is not created fresh this run, it will instead take the equivilent file from here. Default is '' because you may not want any subsetting.
@@ -69,7 +69,7 @@ def get_default_kw(**kw):
     kw['base_data_country_names_uri'] = os.path.join(kw['base_data_dir'], 'misc', 'country_names.csv')
     kw['base_data_country_ids_raster_uri'] = os.path.join(kw['base_data_dir'], 'misc', 'country_ids.tif')
     kw['base_data_calories_per_cell_uri'] = os.path.join(kw['base_data_dir'], 'publications/ag_tradeoffs/land_econ', 'calories_per_cell.tif')
-    kw['proportion_cropland_uri'] = os.path.join(kw['base_data_dir'], 'crops/earthstat', 'proportion_cropland.tif')
+    kw['proportion_cropland_uri'] = os.path.join(kw['base_data_dir'], 'crops/earthstat', 'proportion_croplahb.tif')
     kw['base_data_precip_uri'] = os.path.join(kw['input_dir'], 'bio1.bil')
     kw['base_data_temperature_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/baseline/5min', 'baseline_bio1_Annual_Mean_Temperature.tif')
     kw['base_data_gdp_2000_uri'] = os.path.join(kw['input_dir'], 'gdp_2000.tif')
@@ -153,7 +153,7 @@ def get_default_kw(**kw):
     kw['data_registry']['minutes_to_market'] = kw['base_data_minutes_to_market_uri']
 
     # NOTE: Here i made a unique lists of vars used in eachregression
-    # Possibly connect this with GE.stats to more systematically convert a list of vars to a list of modified (squared) vars, etc.
+    # Possibly connect this with hb.stats to more systematically convert a list of vars to a list of modified (squared) vars, etc.
     kw['linear_fit_no_endogenous_var_names'] = ['precip', 'temperature', 'minutes_to_market', 'workability', 'toxicity', 'rooting_conditions', 'protected_areas', 'oxygen_availability', 'nutrient_retention', 'nutrient_availability', 'excess_salts', 'crop_suitability', 'gdp_gecon', 'altitude', 'slope']
     kw['full_fit_no_endogenous_var_names'] = ['precip', 'precip_2 ', 'precip_3', 'temperature', 'temperature_2', 'temperature_3', 'minutes_to_market', 'minutes_to_market_2', 'minutes_to_market_3', 'workability', 'toxicity', 'rooting_conditions', 'protected_areas', 'oxygen_availability', 'nutrient_retention', 'nutrient_availability', 'excess_salts ', 'crop_suitability', 'crop_suitability_2', 'crop_suitability_3', 'gdp_gecon', 'gdp_gecon_2', 'gdp_gecon_3', 'altitude', 'altitude_2', 'altitude_3', 'slope', 'slope_2', 'slope_3']
 
@@ -400,7 +400,7 @@ def copy_base_data(**kw):
     ]
 
     for i, base_data_uri in enumerate(to_copy):
-        local_filename = nd.explode_uri(base_data_uri)['filename'].replace('base_data_', '', 1)
+        local_filename = hb.explode_uri(base_data_uri)['filename'].replace('base_data_', '', 1)
         local_uri = os.path.join(kw['base_data_copy_dir'], local_filename)
         kw[local_keys[i]] = local_uri
         if not os.path.exists(local_uri):
@@ -461,48 +461,48 @@ def create_baseline_regression_data(**kw):
     dfs_list = []
     for name, uri in input_uris.items():
         if 'Fertilizer' in uri or '_calories_per_ha' in uri or '_HarvestedAreaFraction' in uri or 'altitude' in uri or 'slope' in uri:
-            af = nd.ArrayFrame(uri)
+            af = hb.ArrayFrame(uri)
             # NOTE, originaly i had this as af = af.where() which failed to modify the af before going in.
             modified_array = np.where((af.data < 0) | (af.data > 9999999999999999), 0, af.data)
-            modified_af = nd.ArrayFrame(modified_array, af)
+            modified_af = hb.ArrayFrame(modified_array, af)
             af_names_list.append(name)
-            df = ge.convert_af_to_1d_df(modified_af)
+            df = hb.convert_af_to_1d_df(modified_af)
             dfs_list.append(df)
         else:
-            af = nd.ArrayFrame(uri)
+            af = hb.ArrayFrame(uri)
             af_names_list.append(name)
-            df = ge.convert_af_to_1d_df(af)
+            df = hb.convert_af_to_1d_df(af)
             dfs_list.append(df)
 
     for dir in input_dirs:
-        uris_list = nd.get_list_of_file_uris_recursively(dir, filter_extensions='.tif')
+        uris_list = hb.get_list_of_file_uris_recursively(dir, filter_extensions='.tif')
         for uri in uris_list:
             if 'Fertilizer' in uri or '_calories_per_ha_masked' in uri or '_HarvestedAreaFraction' in uri or 'altitude' in uri or 'slope' in uri:
-                name = nd.explode_uri(uri)['file_root']
-                af = nd.ArrayFrame(uri)
+                name = hb.explode_uri(uri)['file_root']
+                af = hb.ArrayFrame(uri)
                 # NOTE, originaly i had this as af = af.where() which failed to modify the af before going in.
                 modified_array = np.where(af.data < 0, 0, af.data)
-                modified_af = nd.ArrayFrame(modified_array, af)
+                modified_af = hb.ArrayFrame(modified_array, af)
                 af_names_list.append(name)
-                df = ge.convert_af_to_1d_df(modified_af)
+                df = hb.convert_af_to_1d_df(modified_af)
                 dfs_list.append(df)
             else:
-                name = nd.explode_uri(uri)['file_root']
-                af = nd.ArrayFrame(uri)
+                name = hb.explode_uri(uri)['file_root']
+                af = hb.ArrayFrame(uri)
                 af_names_list.append(name)
-                df = ge.convert_af_to_1d_df(af)
+                df = hb.convert_af_to_1d_df(af)
                 dfs_list.append(df)
 
     L.info('Concatenating all dataframes.')
-    # CAREFUL, here all my data are indeed positive but this could change.
+    # CAREFUL, here all my data are indeed positive but this could chanhb.
     # REMEMBER, we are just determining what gets written to disk here, not what is regressed.
     # LEARNING POINT: stack_dfs was only for time series space-time-frames and just happend to work because i didn't structure my data in the wrong way..
-    # df = ge.stack_dfs(dfs_list, af_names_list)
-    df = ge.concatenate_dfs_horizontally(dfs_list, af_names_list)
+    # df = hb.stack_dfs(dfs_list, af_names_list)
+    df = hb.concatenate_dfs_horizontally(dfs_list, af_names_list)
     df[df < 0] = 0.0
 
 
-    # Rather than getting rid of all cells without crops, just get rid of those not on land.
+    # Rather than getting rid of all cells without crops, just get rid of those not on lahb.
     df[df['excess_salts'] == 255.0] = np.nan
 
     # kw['nan_mask_uri'] = 'nan_mask.csv'
@@ -765,7 +765,7 @@ def convert_aggregated_crop_type_dfs_to_geotiffs(**kw):
     """Make aggregated_crop_type geotiffs in kw['aggregated_crop_data_dir_2']"""
 
 
-    match_af = nd.ArrayFrame(kw['calories_per_cell_uri'])
+    match_af = hb.ArrayFrame(kw['calories_per_cell_uri'])
 
     df = pd.read_csv(kw['aggregated_crop_data_csv_uri'])
     df.set_index('Unnamed: 0', inplace=True)
@@ -805,8 +805,8 @@ def convert_aggregated_crop_type_dfs_to_geotiffs(**kw):
         print('plotting', col_name)
         column = col_name
         output_uri = os.path.join(kw['aggregated_crop_data_dir_2'], col_name + '.tif')
-        af = ge.convert_df_to_af_via_index(df, column, match_af, nd.temp('.tif'))
-        af = nd.where(af>10000000000000000000, af.no_data_value, af, output_uri=output_uri)
+        af = hb.convert_df_to_af_via_index(df, column, match_af, hb.temp('.tif'))
+        af = hb.where(af>10000000000000000000, af.no_data_value, af, output_uri=output_uri)
 
     return kw
 
@@ -881,7 +881,7 @@ def do_crop_types_regression(**kw):
         L.info('Starting regression process for ' + output_uri)
 
         script_save_uri = os.path.join(kw['crop_types_regression_dir'], name + '_regression_code.R')
-        p = multiprocessing.Process(target=ge.execute_r_string, args=(r_string, output_uri, script_save_uri, True))
+        p = multiprocessing.Process(target=hb.execute_r_string, args=(r_string, output_uri, script_save_uri, True))
         jobs.append(p)
         p.start()
 
@@ -907,7 +907,7 @@ def do_crop_types_regression(**kw):
             else:
                 print(uri + ' does not exist.')
 
-            L.info('Loaded regression results\n' + nd.pp(returned_odict, return_as_string=True))
+            L.info('Loaded regression results\n' + hb.pp(returned_odict, return_as_string=True))
 
             crop_output = OrderedDict()
 
@@ -968,7 +968,7 @@ def create_climate_scenarios_df(**kw):
     dfs_list = []
 
     match_uri = kw['calories_per_cell_uri']
-    match_af = nd.ArrayFrame(kw['calories_per_cell_uri'])
+    match_af = hb.ArrayFrame(kw['calories_per_cell_uri'])
 
     aligned_uris = OrderedDict()
     for name, uri in input_uris.items():
@@ -978,14 +978,14 @@ def create_climate_scenarios_df(**kw):
         aligned_uris[name] = dst_uri
 
     for name, uri in aligned_uris.items():
-        af = nd.ArrayFrame(uri)
+        af = hb.ArrayFrame(uri)
         af_names_list.append(name)
-        df = ge.convert_af_to_1d_df(af)
+        df = hb.convert_af_to_1d_df(af)
         dfs_list.append(df)
-    df = ge.concatenate_dfs_horizontally(dfs_list, af_names_list)
+    df = hb.concatenate_dfs_horizontally(dfs_list, af_names_list)
     df[df < 0] = 0.0
 
-    # Rather than getting rid of all cells without crops, just get rid of those not on land.
+    # Rather than getting rid of all cells without crops, just get rid of those not on lahb.
     # df[nan_mask_df.ix[:, 0] == np.nan] = np.nan
     df[nan_mask_df == np.nan] = np.nan
     df.to_csv(kw['climate_scenarios_csv_with_nan_uri'])
@@ -1061,7 +1061,7 @@ def create_results_for_each_rcp_ssp_pair(**kw):
 
 
     # Load all necessary  data
-    regression_results_odict = nd.file_to_python_object(kw['crop_types_regression_results_uri'])
+    regression_results_odict = hb.file_to_python_object(kw['crop_types_regression_results_uri'])
 
     # kw['crop_types_regression_data_uri']
     # kw['crop_type_depvars_uri']
@@ -1175,8 +1175,8 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
     current_area_fraction['c3_perennial'] = r"C:\OneDrive\Projects\ipbes\intermediate\states_2015\c3per ^ area_fraction ^ C3 perennial crops.tif"
     current_area_fraction['c4_annual'] = r"C:\OneDrive\Projects\ipbes\intermediate\states_2015\c4ann ^ area_fraction ^ C4 annual crops.tif"
 
-    calories_per_cell_af = nd.ArrayFrame(kw['calories_per_cell_uri'])
-    calories_per_cell_df = ge.convert_af_to_1d_df(calories_per_cell_af)
+    calories_per_cell_af = hb.ArrayFrame(kw['calories_per_cell_uri'])
+    calories_per_cell_df = hb.convert_af_to_1d_df(calories_per_cell_af)
     # calories_per_cell_af.show(keep_output=True)
 
     L.info('Loading nan_mask_uri')
@@ -1186,7 +1186,7 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
         L.info('Writing projections for ' + crop_type + ' to tif.')
 
         earthstat_crop_type_current_uri = os.path.join(kw['aggregated_crop_data_dir_2'], crop_type + '_calories_per_ha.tif')
-        earthstat_crop_type_current_af = nd.ArrayFrame(earthstat_crop_type_current_uri)
+        earthstat_crop_type_current_af = hb.ArrayFrame(earthstat_crop_type_current_uri)
 
         current_area_fraction_input_path =  current_area_fraction[crop_type]
         current_area_fraction_resampled_path = os.path.join(kw['maps_for_each_rcp_ssp_pair_dir'], crop_type + '_current_area_fraction_resampled.tif')
@@ -1195,7 +1195,7 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
 
         print('current_area_fraction_input_path', current_area_fraction_input_path)
 
-        ge.show_raster_uri(current_area_fraction_input_path)
+        hb.show_raster_uri(current_area_fraction_input_path)
         hb.align_dataset_to_match(current_area_fraction_input_path, kw['calories_per_cell_uri'], tmp1, resample_method='near')
 
 
@@ -1218,7 +1218,7 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
                 print('Processing crop_type', crop_type, filename)
 
                 earthstat_crop_type_current_uri = os.path.join(kw['maps_for_each_rcp_ssp_pair_dir'], 'current_' + crop_type + '_calories_per_ha.tif')
-                earthstat_crop_type_current = nd.ArrayFrame(earthstat_crop_type_current_uri)
+                earthstat_crop_type_current = hb.ArrayFrame(earthstat_crop_type_current_uri)
                 file_path = os.path.join(kw['results_for_each_rcp_ssp_pair_dir'], filename)
                 projected_change_full_df = pd.DataFrame(np.zeros(len(calories_per_cell_df.index)), index=calories_per_cell_df.index)
                 projected_change_subset_df = pd.read_csv(file_path, index_col=0)
@@ -1228,12 +1228,12 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
 
                 projected_change_path = os.path.join(kw['maps_for_each_rcp_ssp_pair_dir'], filename.replace('.csv', '.tif'))
                 hb.save_array_as_geotiff(projected_change_array, projected_change_path, kw['calories_per_cell_uri'], data_type_override=7)
-                ge.show_array(projected_change_array, title='CC effect on ' + crop_type + ', all cells', output_uri=projected_change_path.replace('.tif', '.png'))
+                hb.show_array(projected_change_array, title='CC effect on ' + crop_type + ', all cells', output_uri=projected_change_path.replace('.tif', '.png'))
 
                 projected_change_2015_extent_array = np.where(current_area_fraction_resampled > 0, projected_change_array, np.nan)
                 projected_change_2015_extent_uri =  projected_change_path.replace('.tif', '_2015_extent.tif')
-                projected_change_2015_extent = nd.ArrayFrame(projected_change_2015_extent_array, earthstat_crop_type_current, output_uri=projected_change_2015_extent_uri)
-                ge.show_array(projected_change_2015_extent_array, title='CC effect on ' + crop_type + ', 2015 extent', output_uri=projected_change_2015_extent_uri.replace('.tif', '.png'))
+                projected_change_2015_extent = hb.ArrayFrame(projected_change_2015_extent_array, earthstat_crop_type_current, output_uri=projected_change_2015_extent_uri)
+                hb.show_array(projected_change_2015_extent_array, title='CC effect on ' + crop_type + ', 2015 extent', output_uri=projected_change_2015_extent_uri.replace('.tif', '.png'))
 
 
                 if 'sspcur' in filename:
@@ -1260,13 +1260,13 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
 
                     projected_change_2050_extent_array = np.where(year_2050_crop_type_projected_extent > 0, projected_change_array, np.nan)
                     projected_change_2050_extent_uri =  projected_change_path.replace('.tif', '_2050_extent.tif')
-                    projected_change_2050_extent = nd.ArrayFrame(projected_change_2050_extent_array, earthstat_crop_type_current, output_uri=projected_change_2050_extent_uri)
-                    ge.show_array(projected_change_2050_extent_array, title='CC effect on ' + crop_type + ', 2050 extent', output_uri=projected_change_2050_extent_uri.replace('.tif', '.png'))
+                    projected_change_2050_extent = hb.ArrayFrame(projected_change_2050_extent_array, earthstat_crop_type_current, output_uri=projected_change_2050_extent_uri)
+                    hb.show_array(projected_change_2050_extent_array, title='CC effect on ' + crop_type + ', 2050 extent', output_uri=projected_change_2050_extent_uri.replace('.tif', '.png'))
 
                 calories_per_cell = area_fraction * ha_per_cell_5m * projected_change_array
                 calories_per_cell_uri =  os.path.join(kw['maps_for_each_rcp_ssp_pair_dir'], filename.replace('.csv', '_change_per_cell.tif'))
-                calories_per_cell_af = nd.ArrayFrame(calories_per_cell, earthstat_crop_type_current, output_uri=calories_per_cell_uri)
-                ge.show_array(calories_per_cell, title='CC effect on ' + crop_type + ', total per cell', output_uri=calories_per_cell_uri.replace('.tif', '.png'))
+                calories_per_cell_af = hb.ArrayFrame(calories_per_cell, earthstat_crop_type_current, output_uri=calories_per_cell_uri)
+                hb.show_array(calories_per_cell, title='CC effect on ' + crop_type + ', total per cell', output_uri=calories_per_cell_uri.replace('.tif', '.png'))
     return kw
 
 def create_aggregated_results(**kw):
@@ -1298,7 +1298,7 @@ def create_aggregated_results(**kw):
         hb.save_array_as_geotiff(output_array, output_path, match_path)
 
         overlay_shp_uri = os.path.join(hb.BASE_DATA_DIR, 'misc', 'countries')
-        ge.show_raster_uri(output_path, output_uri=output_path.replace('.tif', '.png'), title=nd.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
+        hb.show_raster_uri(output_path, output_uri=output_path.replace('.tif', '.png'), title=hb.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
                            cbar_label='Change in kcal per grid-cell', vmin=-1.0e+11, vmax=3.0e+11, vmid=0,
                            overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles') #cbar_percentiles=[1, 50, 99],
 
@@ -1317,7 +1317,7 @@ def create_percent_changes(**kw):
     output_baseline_calories_path = os.path.join(kw['percent_changes_dir'], 'baseline_calories.png')
 
     overlay_shp_uri = os.path.join(hb.BASE_DATA_DIR, 'misc', 'countries')
-    ge.show_raster_uri(baseline_calories_path, output_uri=output_baseline_calories_path, title=nd.explode_uri(baseline_calories_path)['file_root'].replace('_', ' ').title(),
+    hb.show_raster_uri(baseline_calories_path, output_uri=output_baseline_calories_path, title=hb.explode_uri(baseline_calories_path)['file_root'].replace('_', ' ').title(),
                        cbar_label='kcal per grid-cell', cbar_percentiles=[1, 50, 99], vmid=0,
                        overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles',
                        fig_height=12)  # cbar_percentiles=[1, 50, 99], vmin=-1.6e+12, vmax=4.5e+11,
@@ -1335,14 +1335,14 @@ def create_percent_changes(**kw):
         total = calorie_change + baseline_calories
         total = np.where(total<0, 0, total)
         print('sum', path, np.sum(total))
-        ge.show_array(total, output_uri=output_path, title=nd.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
+        hb.show_array(total, output_uri=output_path, title=hb.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
                       cbar_label='kcal per grid-cell',
                       overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles')  # cbar_percentiles=[1, 50, 99], vmin=-1.6e+12, vmax=4.5e+11,
 
 
         percent_change = total / baseline_calories_zerofix
         output_path = os.path.join(kw['percent_changes_dir'], hb.explode_path(path)['file_root'] + '.png').replace('_caloric_production', '_percent_change')
-        ge.show_array(percent_change, output_uri=output_path, title=nd.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
+        hb.show_array(percent_change, output_uri=output_path, title=hb.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
                       cbar_label='kcal per grid-cell', vmin=-1, vmid=0.0, vmax=1,
                       overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles')  # cbar_percentiles=[1, 50, 99], vmin=-1.6e+12, vmax=4.5e+11,
     return kw
