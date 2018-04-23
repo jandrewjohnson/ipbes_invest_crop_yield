@@ -1,4 +1,4 @@
-# coding=utf-8
+ # coding=utf-8
 
 """
 o   Final regression results aggregated by the five crop functional types (already done?)
@@ -27,7 +27,6 @@ import scipy
 
 import numdal as nd
 import geoecon as ge
-import hazelbean as hb
 import multiprocessing
 
 
@@ -165,6 +164,8 @@ def get_default_kw(**kw):
 
 
 def execute(**kw):
+    """Calls functions corresponding to keywords"""
+
     L.info('Executing script.')
     if not kw:
         kw = get_default_kw()
@@ -330,6 +331,8 @@ def setup_dirs(**kw):
     return kw
 
 def copy_base_data(**kw):
+    """If input missing in basis_dir, use the corresponding base_data."""
+
     hb.create_dirs(kw['base_data_copy_dir'])
 
     to_copy = [
@@ -408,6 +411,8 @@ def copy_base_data(**kw):
 
 
 def create_baseline_regression_data(**kw):
+    """Convert spatial data in csv df format:
+    Create a csv file with regression inputs uris: baseline_regression_data_uris"""
 
     # For specific files, you can specify both a name and a uri, which can be different from the dict key (name)
     input_uris = OrderedDict()
@@ -511,8 +516,11 @@ def create_baseline_regression_data(**kw):
     return kw
 
 def create_crop_types_regression_data(**kw):
+    """Writes csv file 'crop_types_regression_data_uri' from 'baseline_regression_data_uri',
+    with only columns in kw['linear_fit_no_endogenous_var_names']    """
+
     L.info('Running create_crop_types_regression_data. ')
-    L.debug('   Open the beasline regression_data which is HUGE and also has data on crop-specific stuff, then write it to a file specific to the IPBES tasks. In the event that I go back to crop-specific analysis, this may need to be switched back to crop specific.')
+    L.debug('   Open the baseline regression_data which is HUGE and also has data on crop-specific stuff, then write it to a file specific to the IPBES tasks. In the event that I go back to crop-specific analysis, this may need to be switched back to crop specific.')
     df = pd.read_csv(kw['baseline_regression_data_uri'], index_col=['Unnamed: 0'])  # Could speed up here with usecols='excess_salts
 
     output_df = pd.DataFrame(index=df.index)
@@ -526,6 +534,9 @@ def create_crop_types_regression_data(**kw):
     return kw
 
 def create_crop_types_depvars(**kw):
+    """Writes csv file 'crop_type_depvars_uri' from kw['aggregated_crop_data_csv_uri'],
+    using '_calories_per_ha' columns """
+
     L.info('Running create_crop_types_depvars. ')
     L.debug('   Open aggregated_crop_data.csv and pull out ipbes specific stuff.')
     df = pd.read_csv(kw['aggregated_crop_data_csv_uri'], index_col=['Unnamed: 0'])  # Could speed up here with usecols='excess_salts
@@ -543,6 +554,9 @@ def create_crop_types_depvars(**kw):
 
 
 def create_nan_mask(**kw):
+    """Create NaN mask for cells not on land (df['excess_salts'] == 255.0]).
+    Save in csv file kw['nan_mask_uri']"""
+    
     # LEARNING POINT , ommitting index_col=['Unnamed: 0'] was a massive time-sink mistake. Deal with index columns more carefully.
     df = pd.read_csv(kw['baseline_regression_data_uri'], index_col=['Unnamed: 0']) # Could speed up here with usecols='excess_salts
     df[df['excess_salts'] == 255.0] = np.nan
@@ -560,7 +574,7 @@ def aggregate_crops_by_type(**kw):
 
     baseline_regression_data_df = pd.read_csv(kw['baseline_regression_data_uri'])
     baseline_regression_data_df.set_index('Unnamed: 0', inplace=True)
-    # baseline_regression_data_df = ge.read_csv_sample(kw['baseline_regression_data_uri'], .001)
+    # baseline_regression_data_df = hb.read_csv_sample(kw['baseline_regression_data_uri'], .001)
 
     vars_names_to_aggregate = [
         'production_value_per_ha',
@@ -748,6 +762,9 @@ def aggregate_crops_by_type(**kw):
     return kw
 
 def convert_aggregated_crop_type_dfs_to_geotiffs(**kw):
+    """Make aggregated_crop_type geotiffs in kw['aggregated_crop_data_dir_2']"""
+
+
     match_af = nd.ArrayFrame(kw['calories_per_cell_uri'])
 
     df = pd.read_csv(kw['aggregated_crop_data_csv_uri'])
@@ -795,7 +812,13 @@ def convert_aggregated_crop_type_dfs_to_geotiffs(**kw):
 
 
 def do_crop_types_regression(**kw):
+    """Sensored regression (max likelihood approach non linear regression) to predict yield on each grid cell,
+    with sensor (contraint) that yield > 0.
+
+    Performs regression on each crop type"""
+    
     def gen_r_code_for_crop(crop_name):
+        """Regression performed in R (No sensored regression suitable options found in Python)"""
 
         r_string = """library(tidyverse)
             library(MASS)
