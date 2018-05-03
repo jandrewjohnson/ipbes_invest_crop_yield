@@ -1,4 +1,4 @@
- # coding=utf-8
+# coding=utf-8
 
 """
 o   Final regression results aggregated by the five crop functional types (already done?)
@@ -43,12 +43,15 @@ def get_default_kw(**kw):
         kw = OrderedDict(kw)
 
     ### These should be the only lines that need editing for a new project.
+    #old kw['project_name'] = kw.get('project_name', 'ipbes')  # Name of the project being run. A project is a specific implementation of the repository's code to some input data relative to the workspace_dir.
+    #old kw['project_dir'] = kw.get('project_dir', os.path.join('c:/onedrive/projects', 'ipbes'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
+    #old kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
     kw['project_name'] = kw.get('project_name', 'ipbes')  # Name of the project being run. A project is a specific implementation of the repository's code to some input data relative to the workspace_dir.
-    kw['project_dir'] = kw.get('project_dir', os.path.join('c:/onedrive/projects', 'ipbes'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
-    kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
+    kw['project_dir'] = kw.get('project_dir', '/Users/charlotteweil1/Projets/Wallenberg/Crop Modeling/CropModeling/Data')  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
+    #kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
 
     ### Generic non-project-specific dir links.
-    kw['base_data_dir'] = kw.get('base_data_dir', hb.BASE_DATA_DIR)
+    kw['base_data_dir'] = kw.get('base_data_dir', '/Users/charlotteweil1/Projets/Wallenberg/Crop Modeling/CropModeling/Data/base_data')
     kw['bulk_data_dir'] = kw.get('bulk_data_dir', hb.BULK_DATA_DIR)
     kw['external_bulk_data_dir'] = kw.get('external_bulk_data_dir', hb.EXTERNAL_BULK_DATA_DIR)
 
@@ -69,20 +72,19 @@ def get_default_kw(**kw):
     kw['base_data_country_names_uri'] = os.path.join(kw['base_data_dir'], 'misc', 'country_names.csv')
     kw['base_data_country_ids_raster_uri'] = os.path.join(kw['base_data_dir'], 'misc', 'country_ids.tif')
     kw['base_data_calories_per_cell_uri'] = os.path.join(kw['base_data_dir'], 'publications/ag_tradeoffs/land_econ', 'calories_per_cell.tif')
-    kw['proportion_cropland_uri'] = os.path.join(kw['base_data_dir'], 'crops/earthstat', 'proportion_croplahb.tif')
+    kw['proportion_cropland_uri'] = os.path.join(kw['base_data_dir'], 'crops/earthstat', 'proportion_cropland.tif') ##proportion_croplahb was typo?
     kw['base_data_precip_uri'] = os.path.join(kw['input_dir'], 'bio1.bil')
     kw['base_data_temperature_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/baseline/5min', 'baseline_bio1_Annual_Mean_Temperature.tif')
     kw['base_data_gdp_2000_uri'] = os.path.join(kw['input_dir'], 'gdp_2000.tif')
-    kw['base_data_price_per_ha_masked_dir'] = os.path.join(kw['base_data_dir'], 'crops\\crop_prices_and_production_value_2000\\price_per_ha_masked')
-    kw['base_data_crop_calories_dir'] = os.path.join(kw['base_data_dir'], 'crops\\crop_calories')
+    ### kw['base_data_price_per_ha_masked_dir'] = os.path.join(kw['base_data_dir'], 'crops/crop_prices_and_production_value_2000/price_per_ha_masked')
+    kw['base_data_crop_calories_dir'] = os.path.join(kw['base_data_dir'], 'crops/crop_calories')
     kw['base_data_ag_value_2000_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'ag_value_2000.tif')
-    kw['base_data_minutes_to_market_uri'] = os.path.join(kw['base_data_dir'], 'socioeconomic\\distance_to_market\\uchida_and_nelson_2009\\access_50k', 'minutes_to_market_5m.tif')
-    kw['base_data_ag_value_2000_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'ag_value_2000.tif')
-    kw['base_data_pop_30s_uri'] = os.path.join(kw['base_data_dir'], 'population\\ciesin', 'pop_30s.tif')
-    kw['base_data_proportion_pasture_uri'] = os.path.join(hb.BASE_DATA_DIR, 'crops/earthstat', 'proportion_pasture.tif')
-    kw['base_data_faostat_pasture_uri'] = os.path.join(hb.BASE_DATA_DIR, 'socioeconomic\\fao', 'faostat', 'Production_LivestockPrimary_E_All_Data_(Norm).csv')
-    kw['base_data_ag_value_2005_spam_uri'] = os.path.join(hb.BASE_DATA_DIR, 'crops', 'ag_value_2005_spam.tif')
-    kw['ha_per_cell_5m_path'] = os.path.join(hb.BASE_DATA_DIR, 'misc', 'ha_per_cell_5m.tif')
+    kw['base_data_minutes_to_market_uri'] = os.path.join(kw['base_data_dir'], 'socioeconomic/distance_to_market/uchida_and_nelson_2009/access_50k', 'minutes_to_market_5m.tif')
+    ### kw['base_data_pop_30s_uri'] = os.path.join(kw['base_data_dir'], 'population/ciesin', 'pop_30s.tif')
+    ### kw['base_data_proportion_pasture_uri'] = os.path.join(kw['base_data_dir'], 'crops/earthstat', 'proportion_pasture.tif')
+    ### kw['base_data_faostat_pasture_uri'] = os.path.join(kw['base_data_dir'], 'socioeconomic/fao', 'faostat', 'Production_LivestockPrimary_E_All_Data_(Norm).csv')
+    ### kw['base_data_ag_value_2005_spam_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'ag_value_2005_spam.tif')
+    kw['ha_per_cell_5m_path'] = os.path.join(kw['base_data_dir'], 'misc', 'ha_per_cell_5m.tif')
 
     # Common base data references GAEZ
     kw['base_data_workability_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "workability_index.tif")
@@ -97,8 +99,8 @@ def get_default_kw(**kw):
     kw['base_data_excess_salts_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "excess_salts_index.tif")
     kw['base_data_cultivated_land_percent_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "cultivated_land_percent.tif")
     kw['base_data_crop_suitability_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "crop_suitability.tif")
-    kw['base_data_precip_2070_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi7012_Annual_Precipitation.tif")
-    kw['base_data_temperature_2070_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi701_Annual_Mean_Temperature.tif")
+    ### kw['base_data_precip_2070_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi7012_Annual_Precipitation.tif")
+    ### kw['base_data_temperature_2070_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi701_Annual_Mean_Temperature.tif")
     kw['base_data_slope_uri'] = os.path.join(kw['base_data_dir'], 'elevation', "slope.tif")
     kw['base_data_altitude_uri'] = os.path.join(kw['base_data_dir'], 'elevation', "altitude.tif")
 
@@ -140,7 +142,7 @@ def get_default_kw(**kw):
     kw['data_registry']['excess_salts'] = kw['base_data_excess_salts_index_uri']
     kw['data_registry']['cultivated_land_percent'] = kw['base_data_cultivated_land_percent_uri']
     kw['data_registry']['crop_suitability'] = kw['base_data_crop_suitability_uri']
-    kw['data_registry']['temperature'] = kw['base_data_temperature_2070_uri']
+    ### w['data_registry']['temperature'] = kw['base_data_temperature_2070_uri']
     kw['data_registry']['slope'] = kw['base_data_slope_uri']
     kw['data_registry']['altitude'] = kw['base_data_altitude_uri']
     # kw['data_registry']['base_data_country_names_uri'] = kw['base_data_country_names_uri']
@@ -160,8 +162,6 @@ def get_default_kw(**kw):
     kw['sample_fraction'] = kw.get('sample_fraction', 0.2)
 
     return kw
-
-
 
 def execute(**kw):
     """Calls functions corresponding to keywords"""
@@ -345,10 +345,10 @@ def copy_base_data(**kw):
         kw['base_data_ag_value_2000_uri'],
         kw['base_data_minutes_to_market_uri'],
         kw['base_data_ag_value_2000_uri'],
-        kw['base_data_pop_30s_uri'],
-        kw['base_data_proportion_pasture_uri'],
-        kw['base_data_faostat_pasture_uri'],
-        kw['base_data_ag_value_2005_spam_uri'],
+        ###         kw['base_data_pop_30s_uri'],
+        ###         kw['base_data_proportion_pasture_uri'],
+        ###         kw['base_data_faostat_pasture_uri'],
+        ###       kw['base_data_ag_value_2005_spam_uri'],
         kw['base_data_workability_index_uri'],
         kw['base_data_toxicity_index_uri'],
         kw['base_data_rooting_conditions_index_uri'],
@@ -361,8 +361,8 @@ def copy_base_data(**kw):
         kw['base_data_excess_salts_index_uri'],
         kw['base_data_cultivated_land_percent_uri'],
         kw['base_data_crop_suitability_uri'],
-        kw['base_data_precip_2070_uri'],
-        kw['base_data_temperature_2070_uri'],
+        ### kw['base_data_precip_2070_uri'],
+        ### kw['base_data_temperature_2070_uri'],
         kw['base_data_slope_uri'],
         kw['base_data_altitude_uri'],
     ]
