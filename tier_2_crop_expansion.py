@@ -25,8 +25,8 @@ from collections import OrderedDict
 import logging
 import scipy
 
-import geoecon as ge
-import numdal as nd
+#import geoecon as ge
+#import numdal as nd
 
 
 
@@ -48,7 +48,7 @@ def get_default_kw(**kw):
 
     ### These should be the only lines that need editing for a new project.
     kw['project_name'] = kw.get('project_name', 'ipbes')  # Name of the project being run. A project is a specific implementation of the repository's code to some input data relative to the workspace_dir.
-    kw['project_dir'] = kw.get('project_dir', os.path.join('c:/onedrive/projects', 'ipbes'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
+    kw['project_dir'] = kw.get('project_dir', os.path.join('/Users/charlotteweil1/Dropbox/Wallenberg/Food_ES/Crop modeling','IPBES project'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
     kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
 
     ### Generic project-specific dirs from kwargs.
@@ -733,7 +733,7 @@ def aggregate_crops_by_type(**kw):
     # for crop in crops:
     var_name_to_aggregate = 'calories'
     for crop_type in kw['crop_types']:
-        input_col_name = crop + '_' + var_name_to_aggregate
+        input_col_name = crop_type + '_' + var_name_to_aggregate
         output_col_name = crop_type + '_' + var_name_to_aggregate
         crop_types_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
 
@@ -1354,7 +1354,7 @@ if __name__ == '__main__':
     # kw['crop_names'] = ['wheat']
 
     # Hacky way to set match af
-    kw['calories_per_cell_uri'] = os.path.join(kw['basis_dir'], 'base_data_copy', 'calories_per_cell.tif')
+    #kw['calories_per_cell_uri'] = os.path.join(kw['basis_dir'], 'base_data_copy', 'calories_per_cell.tif')
 
     kw = execute(**kw)
 
