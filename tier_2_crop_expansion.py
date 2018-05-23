@@ -430,6 +430,10 @@ def create_baseline_regression_data(**kw):
     input_uris['slope'] = kw['slope_uri']
     input_uris['altitude'] = kw['altitude_uri']
 
+    for crop_type in kw['crop_types']:
+        input_uris[crop_type + '_calories'] = os.path.join(kw['project_base_data_dir'],(crop_type + '_calories.tif'))
+
+
     # START HERE and re-add these while clarifying when we are using the top 16 crops vs ALL the crops.
     # for crop_name in kw['crop_names']:
     #     input_uris[crop_name + ''] = os.path.join(kw['base_data_price_per_ha_masked_dir'], crop_name + '_production_value_per_ha_gt01_national_price.tif')
@@ -734,7 +738,7 @@ def aggregate_crops_by_type(**kw):
     var_name_to_aggregate = 'calories'
     for crop_type in kw['crop_types']:
         input_col_name = crop_type + '_' + var_name_to_aggregate
-        output_col_name = crop_type + '_' + var_name_to_aggregate
+        output_col_name = crop_type + '_' + var_name_to_aggregate ####Why duplicate since input_col_name == output_col_name?
         crop_types_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
 
         crop_types_df[output_col_name] += baseline_regression_data_df[input_col_name]
@@ -1330,10 +1334,10 @@ if __name__ == '__main__':
     kw = get_default_kw()
 
     ## Set runtime_conditionals
-    kw['create_baseline_regression_data'] = 0
-    kw['create_crop_types_regression_data'] = 0
-    kw['create_crop_types_depvars'] = 0
-    kw['create_nan_mask'] = 0
+    kw['create_baseline_regression_data'] = 1
+    kw['create_crop_types_regression_data'] = 1
+    kw['create_crop_types_depvars'] = 1
+    kw['create_nan_mask'] = 1
     kw['aggregate_crops_by_type'] = 1
     kw['convert_aggregated_crop_type_dfs_to_geotiffs'] = 0
     kw['calc_optimal_regression_equations_among_linear_cubed'] = 0
