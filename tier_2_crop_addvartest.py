@@ -85,6 +85,8 @@ def get_default_kw(**kw):
 
     kw['ha_per_cell_5m_path'] = os.path.join(kw['project_base_data_dir'], 'misc', 'ha_per_cell_5m.tif')
 
+    kw['new_var_test_uri'] = os.path.join(kw['input_dir'], 'hello_new_variable_test.tif')
+
     # Common base data references GAEZ
     kw['workability_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "workability_index.tif")
     kw['toxicity_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "toxicity_index.tif")
@@ -403,8 +405,13 @@ def create_baseline_regression_data(**kw):
 
     kw['precip_uri'] = os.path.join(kw['project_base_data_dir'], 'bio12.bil')
 
+
     # For specific files, you can specify both a name and a uri, which can be different from the dict key (name)
     input_uris = OrderedDict()
+
+    input_uris['new_var'] = kw['new_var_test_uri']
+
+
     input_uris['calories_per_cell'] = kw['calories_per_cell_uri']
     input_uris['precip'] = kw['precip_uri']
     input_uris['temperature'] = kw['temperature_uri']
@@ -1335,18 +1342,18 @@ if __name__ == '__main__':
     kw = get_default_kw()
 
     ## Set runtime_conditionals
-    kw['create_baseline_regression_data'] = 0
-    kw['create_crop_types_regression_data'] = 0
-    kw['create_crop_types_depvars'] = 0
-    kw['create_nan_mask'] = 0
-    kw['aggregate_crops_by_type'] = 0
-    kw['convert_aggregated_crop_type_dfs_to_geotiffs'] = 0
+    kw['create_baseline_regression_data'] = 1
+    kw['create_crop_types_regression_data'] = 1
+    kw['create_crop_types_depvars'] = 1
+    kw['create_nan_mask'] = 1
+    kw['aggregate_crops_by_type'] = 1
+    kw['convert_aggregated_crop_type_dfs_to_geotiffs'] = 1
     kw['calc_optimal_regression_equations_among_linear_cubed'] = 0
-    kw['do_crop_types_regression'] = 1
-    kw['combine_crop_types_regressions_into_single_file'] = 1
+    kw['do_crop_types_regression'] = 0
+    kw['combine_crop_types_regressions_into_single_file'] = 0
     kw['create_climate_scenarios_df'] = 0
     kw['combine_regressions_into_single_table'] = 0
-    kw['create_results_for_each_rcp_ssp_pair'] = 1
+    kw['create_results_for_each_rcp_ssp_pair'] = 0
     kw['create_maps_for_each_rcp_ssp_pair'] = 0
     kw['create_aggregated_results'] = 0
     kw['create_percent_changes'] = 0
