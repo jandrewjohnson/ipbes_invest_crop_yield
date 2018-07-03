@@ -52,34 +52,36 @@ def do_crop_types_ML(**kw):
     ###           MODELS
     ### - - - - - - - - - - - - - -
 
-    L.info('KNeighborsRegressor (scaled)')
+    # L.info('KNeighborsRegressor (scaled)') ### TAKES 2HOURS
+    #
+    # knn = KNeighborsRegressor(n_neighbors=5)
+    # knn.fit(X_train_scaled, y_train)
+    # knn_score= knn.score(X_test_scaled, y_test)
+    # print('KNN CLASSIFIER with ',5,' nearest neighbors - - - ')
+    # print('KNN Score on training set: ', knn.score(X_train_scaled, y_train))
+    # print('KNN Score on test set: ', knn_score)
 
-    knn = KNeighborsRegressor(n_neighbors=5)
-    knn.fit(X_train_scaled, y_train)
-    knn_score= knn.score(X_test_scaled, y_test)
-    print('KNN CLASSIFIER with ',5,' nearest neighbors - - - ')
-    print('KNN Score on training set: ', knn.score(X_train_scaled, y_train))
-    print('KNN Score on test set: ', knn_score)
+    ## ERROR: doesn't recognize LinearRegression(), however imported :(
 
-
-
-    L.info('LinearRegression')
-
-    linreg = LinearRegression().fit(X_train, y_train)
-    print('R-squared score (training): {:.3f}'
-          .format(linreg.score(X_train, y_train)))
-    print('R-squared score (test): {:.3f}'
-          .format(linreg.score(X_test, y_test)))
-
-
-
-    L.info('LinearRegression (scaled)')
-
-    linreg = LinearRegression().fit(X_train_scaled, y_train)
-    print('R-squared score (training): {:.3f}'
-          .format(linreg.score(X_train_scaled, y_train)))
-    print('R-squared score (test): {:.3f}'
-          .format(linreg.score(X_test_scaled, y_test)))
+    # L.info('LinearRegression')
+    #
+    # linreg = LinearRegression().fit(X_train, y_train)
+    # print('R-squared score (training): {:.3f}'
+    #       .format(linreg.score(X_train, y_train)))
+    # print('R-squared score (test): {:.3f}'
+    #       .format(linreg.score(X_test, y_test)))
+    #
+    #
+    #
+    # L.info('LinearRegression (scaled)')
+    #
+    # lr = LinearRegression()
+    #
+    # linreg = LinearRegression().fit(X_train_scaled, y_train)
+    # print('R-squared score (training): {:.3f}'
+    #       .format(linreg.score(X_train_scaled, y_train)))
+    # print('R-squared score (test): {:.3f}'
+    #       .format(linreg.score(X_test_scaled, y_test)))
 
 
 

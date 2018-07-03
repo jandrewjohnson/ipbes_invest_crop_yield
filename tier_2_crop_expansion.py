@@ -45,7 +45,7 @@ def get_default_kw(**kw):
 
     ### These should be the only lines that need editing for a new project.
     kw['project_name'] = kw.get('project_name', 'ipbes')  # Name of the project being run. A project is a specific implementation of the repository's code to some input data relative to the workspace_dir.
-    kw['project_dir'] = kw.get('project_dir', os.path.join('/Users/charlotteweil1/Dropbox/Wallenberg/Food_ES/Crop modeling','Test'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
+    kw['project_dir'] = kw.get('project_dir', os.path.join('/Users/charlotteweil1/Dropbox/Wallenberg/Food_ES/Crop modeling','IPBES Project'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
     kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
 
     ### Generic project-specific dirs from kwargs.
