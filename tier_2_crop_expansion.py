@@ -28,9 +28,6 @@ import scipy
 #import geoecon as ge
 #import numdal as nd
 
-
-
-import hazelbean as hb
 import multiprocessing
 
 
@@ -48,7 +45,7 @@ def get_default_kw(**kw):
 
     ### These should be the only lines that need editing for a new project.
     kw['project_name'] = kw.get('project_name', 'ipbes')  # Name of the project being run. A project is a specific implementation of the repository's code to some input data relative to the workspace_dir.
-    kw['project_dir'] = kw.get('project_dir', os.path.join('/Users/charlotteweil1/Dropbox/Wallenberg/Food_ES/Crop modeling','IPBES project'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
+    kw['project_dir'] = kw.get('project_dir', os.path.join('/Users/charlotteweil1/Dropbox/Wallenberg/Food_ES/Crop modeling','Test'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
     kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
 
     ### Generic project-specific dirs from kwargs.
@@ -247,14 +244,14 @@ def execute(**kw):
     #     kw['data_registry']['nitrogen_fixer_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_NitrogenApplication_Rate.tif')
 
 
-    if kw['calc_optimal_regression_equations_among_linear_cubed']:
-        kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['run_dir'], 'optimal_regression_equations_among_linear_cubed')
-        kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
-        hb.create_dirs(kw['optimal_regression_equations_among_linear_cubed_dir'])
-        kw = calc_optimal_regression_equations_among_linear_cubed(**kw)
-    else:
-        kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['basis_dir'], 'optimal_regression_equations_among_linear_cubed')
-        kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
+    #if kw['calc_optimal_regression_equations_among_linear_cubed']:
+    #    kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['run_dir'], 'optimal_regression_equations_among_linear_cubed')
+    #    kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
+    #    hb.create_dirs(kw['optimal_regression_equations_among_linear_cubed_dir'])
+    #     kw = calc_optimal_regression_equations_among_linear_cubed(**kw)
+    # else:
+    #     kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['basis_dir'], 'optimal_regression_equations_among_linear_cubed')
+    #     kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
 
 
     if kw['do_crop_types_regression']:
@@ -866,12 +863,11 @@ def do_crop_types_regression(**kw):
             """ + crop_name + """_fit <- lm(""" + crop_name + """_formula_string, data=d_""" + crop_name + """)
             "<^>""" + crop_name + """_full_fit_no_endogenous<^>"
             summary(""" + crop_name + """_fit)
-            "<^>"
-           
-        """
+            "<^>" """
 
         return r_string
 
+    test = 0
     jobs = []
     current_thread = 0
     num_concurrent = 6
@@ -1329,27 +1325,45 @@ def create_percent_changes(**kw):
 
 
 
-
+step = 2
 main = 'here'
 if __name__ == '__main__':
     kw = get_default_kw()
 
     ## Set runtime_conditionals
-    kw['create_baseline_regression_data'] = 0
-    kw['create_crop_types_regression_data'] = 0
-    kw['create_crop_types_depvars'] = 0
-    kw['create_nan_mask'] = 0
-    kw['aggregate_crops_by_type'] = 0
-    kw['convert_aggregated_crop_type_dfs_to_geotiffs'] = 0
-    kw['calc_optimal_regression_equations_among_linear_cubed'] = 0
-    kw['do_crop_types_regression'] = 1
-    kw['combine_crop_types_regressions_into_single_file'] = 1
-    kw['create_climate_scenarios_df'] = 0
-    kw['combine_regressions_into_single_table'] = 0
-    kw['create_results_for_each_rcp_ssp_pair'] = 1
-    kw['create_maps_for_each_rcp_ssp_pair'] = 0
-    kw['create_aggregated_results'] = 0
-    kw['create_percent_changes'] = 0
+    if step == 1:
+        kw['create_baseline_regression_data'] = 1
+        kw['create_crop_types_regression_data'] = 1
+        kw['create_crop_types_depvars'] = 1
+        kw['create_nan_mask'] = 1
+        kw['aggregate_crops_by_type'] = 1
+
+        ## kw['convert_aggregated_crop_type_dfs_to_geotiffs'] = 0 ## This step is obsolete, isn't it ?
+        kw['calc_optimal_regression_equations_among_linear_cubed'] = 0 ## This step is obsolete, isn't it ?
+        kw['do_crop_types_regression'] = 0
+        kw['combine_crop_types_regressions_into_single_file'] = 0
+        kw['create_climate_scenarios_df'] = 0
+        kw['combine_regressions_into_single_table'] = 0
+        kw['create_results_for_each_rcp_ssp_pair'] = 0
+        kw['create_maps_for_each_rcp_ssp_pair'] = 0
+        kw['create_aggregated_results'] = 0
+        kw['create_percent_changes'] = 0
+    elif step == 2:
+        kw['create_baseline_regression_data'] = 0
+        kw['create_crop_types_regression_data'] = 0
+        kw['create_crop_types_depvars'] = 0
+        kw['create_nan_mask'] = 0
+        kw['aggregate_crops_by_type'] = 0
+
+        kw['do_crop_types_regression'] = 1
+        kw['combine_crop_types_regressions_into_single_file'] = 1
+
+        kw['create_climate_scenarios_df'] = 0
+        kw['combine_regressions_into_single_table'] = 0
+        kw['create_results_for_each_rcp_ssp_pair'] = 0
+        kw['create_maps_for_each_rcp_ssp_pair'] = 0
+        kw['create_aggregated_results'] = 0
+        kw['create_percent_changes'] = 0
 
 
 
