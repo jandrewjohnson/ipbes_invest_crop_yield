@@ -101,6 +101,8 @@ def get_default_kw(**kw):
     kw['slope_uri'] = os.path.join(kw['project_base_data_dir'], "slope.tif")
     kw['altitude_uri'] = os.path.join(kw['project_base_data_dir'], "altitude.tif")
 
+    kw['climate_zones_uri'] = os.path.join(kw['project_base_data_dir'], "climate_zones.tif")
+
     kw['crop_names'] = [
         'barley',
         'cassava',
@@ -427,6 +429,8 @@ def create_baseline_regression_data(**kw):
     input_uris['gdp_gecon'] = os.path.join(kw['project_base_data_dir'], 'gdp_per_capita_2000_5m.tif')
     input_uris['slope'] = kw['slope_uri']
     input_uris['altitude'] = kw['altitude_uri']
+
+    input_uris['climate_zones'] = kw['climate_zones_uri']
 
     for crop_type in kw['crop_types']:
         input_uris[crop_type + '_calories'] = os.path.join(kw['project_base_data_dir'],(crop_type + '_calories.tif'))
@@ -1325,7 +1329,7 @@ def create_percent_changes(**kw):
 
 
 
-step = 2
+step = 1
 main = 'here'
 if __name__ == '__main__':
     kw = get_default_kw()
