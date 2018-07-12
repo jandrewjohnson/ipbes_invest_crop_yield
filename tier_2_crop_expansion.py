@@ -25,58 +25,13 @@ from collections import OrderedDict
 import logging
 import scipy
 
-#import numdal as nd
 #import geoecon as ge
+#import numdal as nd
+
 import multiprocessing
 
 
 import hazelbean as hb
-
-def convert_af_to_1d_df(af):
-    array = af.data.flatten()
-    # print(' CALLED convert_af_to_1d_df on array of size' + str(len(array)))
-    df = pd.DataFrame(array)
-    return df
-
-def process_gaez_inputs(**kw):
-    names = ['workability_index',
-             'toxicity_index',
-             'rooting_conditions_index',
-             'protected_areas_index',
-             'oxygen_availability_index',
-             'nutrient_retention_index',
-             'nutrient_availability_index',
-             'excess_salts_index',
-             ]
-
-    # Save a local, modified version to project where the categories are converted to a continuous 0-1.
-    for name in names:
-        base_data_uri = os.path.join(kw['base_data_dir'], 'crops', 'gaez', name + '.tif')
-        output_uri = os.path.join(kw['gaez_data_dir'], name + '.tif').replace('index', 'continuous')
-
-        af = hb.ArrayFrame(base_data_uri)
-        rules = {0: 0.0,
-                 1: 1.0,
-                 2: 0.75,
-                 3: 0.5,
-                 4: 0.25,
-                 5: 0.0,
-                 6: 0.0,
-                 7: 0.0,}
-
-        if 'protected' in base_data_uri:
-            rules = {0: 1.0,
-                     1: 0.5,
-                     2: 0.0,
-                     3: 0.0,
-                     4: 0.0,
-                     5: 0.0,
-                     6: 0.0,
-                     7: 0.0, }
-        af.reclassify_array_by_dict(rules, output_uri=output_uri)
-
-    return kw
-
 L = hb.get_logger()
 
 def get_default_kw(**kw):
@@ -89,66 +44,62 @@ def get_default_kw(**kw):
         kw = OrderedDict(kw)
 
     ### These should be the only lines that need editing for a new project.
-    #old kw['project_name'] = kw.get('project_name', 'ipbes')  # Name of the project being run. A project is a specific implementation of the repository's code to some input data relative to the workspace_dir.
-    #old kw['project_dir'] = kw.get('project_dir', os.path.join('c:/onedrive/projects', 'ipbes'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
-    #old kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
     kw['project_name'] = kw.get('project_name', 'ipbes')  # Name of the project being run. A project is a specific implementation of the repository's code to some input data relative to the workspace_dir.
-    kw['project_dir'] = kw.get('project_dir', '/Users/charlotteweil1/Projets/Wallenberg/Crop Modeling/CropModeling/Data')  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
-    #kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
-
-    ### Generic non-project-specific dir links.
-    kw['base_data_dir'] = kw.get('base_data_dir', '/Users/charlotteweil1/Projets/Wallenberg/Crop Modeling/CropModeling/Data/base_data')
-    kw['bulk_data_dir'] = kw.get('bulk_data_dir', hb.BULK_DATA_DIR)
-    kw['external_bulk_data_dir'] = kw.get('external_bulk_data_dir', hb.EXTERNAL_BULK_DATA_DIR)
+    kw['project_dir'] = kw.get('project_dir', os.path.join('/Users/charlotteweil1/Dropbox/Wallenberg/Food_ES/Crop modeling','IPBES Project'))  # This is the ONLY absolute path and it is specific to the researcher and the researcher's current project.
+    kw['repository_dir'] = 'ipbes_0.1'  # This is the only dir that will be under Version Control. Don't put code anywhere else.
 
     ### Generic project-specific dirs from kwargs.
     kw['input_dir'] = kw.get('input_dir', os.path.join(kw['project_dir'], 'input'))  # New inputs specific to this project.
     kw['project_base_data_dir'] = kw.get('project_base_data_dir', os.path.join(kw['project_dir'], 'base_data'))  # Data that must be redistributed with this project for it to work. Do not put actual base data here that might be used across many projects.
-    kw['temporary_dir'] = kw.get('temporary_dir', hb.TEMPORARY_DIR)  # Generates new run_dirs here. Useful also to set the numdal temporary_dir to here for the run.
-    kw['test_dir'] = kw.get('temporary_dir', hb.TEST_DATA_DIR)  # Generates new run_dirs here. Useful also to set the numdal temporary_dir to here for the run.
+
     # kw['intermediate_dir'] =  kw.get('input_dir', os.path.join(kw['project_dir'], kw['temporary_dir']))  # If generating lots of data, set this to temporary_dir so that you don't put huge data into the cloud.
     kw['intermediate_dir'] = kw.get('intermediate_dir', os.path.join(kw['project_dir'], 'intermediate'))  # If generating lots of data, set this to temporary_dir so that you don't put huge data into the cloud.
     kw['output_dir'] = kw.get('output_dir', os.path.join(kw['project_dir'], 'output'))  # the final working run is move form Intermediate to here and any hand-made docs are put here.
     kw['run_string'] = kw.get('run_string', hb.pretty_time())  # unique string with time-stamp. To be used on run_specific identifications.
-    kw['run_dir'] = kw.get('run_dir', os.path.join(kw['temporary_dir'], '0_seals_' + kw['run_string']))  # ready to delete dir containing the results of one run.
+    kw['run_dir'] = kw.get('run_dir', os.path.join(kw['intermediate_dir'], '0_ipbes_' + kw['run_string']))  # ready to delete dir containing the results of one run.
     kw['basis_name'] = kw.get('basis_name', '')  # Specify a manually-created dir that contains a subset of results that you want to use. For any input that is not created fresh this run, it will instead take the equivilent file from here. Default is '' because you may not want any subsetting.
     kw['basis_dir'] = kw.get('basis_dir', os.path.join(kw['intermediate_dir'], kw['basis_name']))  # Specify a manually-created dir that contains a subset of results that you want to use. For any input that is not created fresh this run, it will instead take the equivilent file from here. Default is '' because you may not want any subsetting.
 
+    kw['gaez_data_dir'] = kw['project_base_data_dir']
+
     ### Common base data references
-    kw['base_data_country_names_uri'] = os.path.join(kw['base_data_dir'], 'misc', 'country_names.csv')
-    kw['base_data_country_ids_raster_uri'] = os.path.join(kw['base_data_dir'], 'misc', 'country_ids.tif')
-    kw['base_data_calories_per_cell_uri'] = os.path.join(kw['base_data_dir'], 'publications/ag_tradeoffs/land_econ', 'calories_per_cell.tif')
-    kw['proportion_cropland_uri'] = os.path.join(kw['base_data_dir'], 'crops/earthstat', 'proportion_cropland.tif') ##proportion_croplahb was typo?
-    kw['base_data_precip_uri'] = os.path.join(kw['input_dir'], 'bio1.bil')
-    kw['base_data_temperature_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/baseline/5min', 'baseline_bio1_Annual_Mean_Temperature.tif')
-    kw['base_data_gdp_2000_uri'] = os.path.join(kw['input_dir'], 'gdp_2000.tif')
-    ### kw['base_data_price_per_ha_masked_dir'] = os.path.join(kw['base_data_dir'], 'crops/crop_prices_and_production_value_2000/price_per_ha_masked')
-    kw['base_data_crop_calories_dir'] = os.path.join(kw['base_data_dir'], 'crops/crop_calories')
-    kw['base_data_ag_value_2000_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'ag_value_2000.tif')
-    kw['base_data_minutes_to_market_uri'] = os.path.join(kw['base_data_dir'], 'socioeconomic/distance_to_market/uchida_and_nelson_2009/access_50k', 'minutes_to_market_5m.tif')
-    ### kw['base_data_pop_30s_uri'] = os.path.join(kw['base_data_dir'], 'population/ciesin', 'pop_30s.tif')
-    ### kw['base_data_proportion_pasture_uri'] = os.path.join(kw['base_data_dir'], 'crops/earthstat', 'proportion_pasture.tif')
-    ### kw['base_data_faostat_pasture_uri'] = os.path.join(kw['base_data_dir'], 'socioeconomic/fao', 'faostat', 'Production_LivestockPrimary_E_All_Data_(Norm).csv')
-    ### kw['base_data_ag_value_2005_spam_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'ag_value_2005_spam.tif')
-    kw['ha_per_cell_5m_path'] = os.path.join(kw['base_data_dir'], 'misc', 'ha_per_cell_5m.tif')
+    # kw['proportion_cropland_uri'] = os.path.join(kw['project_base_data_dir'], 'crops/earthstat', 'proportion_cropland.tif')
+    kw['country_names_uri'] = os.path.join(kw['project_base_data_dir'], 'country_names.csv')
+    kw['country_ids_raster_uri'] = os.path.join(kw['project_base_data_dir'], 'country_ids.tif')
+    kw['calories_per_cell_uri'] = os.path.join(kw['project_base_data_dir'], 'calories_per_cell.tif')
+    kw['precip_uri'] = os.path.join(kw['project_base_data_dir'], 'bio12.bil')
+    kw['temperature_uri'] = os.path.join(kw['project_base_data_dir'], 'bio1.bil')
+    kw['gdp_2000_uri'] = os.path.join(kw['project_base_data_dir'], 'gdp_2000.tif')
+    # kw['price_per_ha_masked_dir'] = os.path.join(kw['project_base_data_dir'], 'crops\\crop_prices_and_production_value_2000\\price_per_ha_masked')
+    # kw['crop_calories_dir'] = os.path.join(kw['project_base_data_dir'], 'crops\\crop_calories')
+    # kw['ag_value_2000_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'ag_value_2000.tif')
+    kw['minutes_to_market_uri'] = os.path.join(kw['project_base_data_dir'], 'minutes_to_market_5m.tif')
+    # kw['ag_value_2000_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'ag_value_2000.tif')
+    kw['pop_30s_uri'] = os.path.join(kw['project_base_data_dir'], 'population\\ciesin', 'pop_30s.tif')
+    # kw['proportion_pasture_uri'] = os.path.join(kw['project_base_data_dir'], 'crops/earthstat', 'proportion_pasture.tif')
+    # kw['faostat_pasture_uri'] = os.path.join(kw['project_base_data_dir'], 'socioeconomic\\fao', 'faostat', 'Production_LivestockPrimary_E_All_Data_(Norm).csv')
+    # kw['ag_value_2005_spam_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'ag_value_2005_spam.tif')
+
+    kw['ha_per_cell_5m_path'] = os.path.join(kw['project_base_data_dir'], 'misc', 'ha_per_cell_5m.tif')
 
     # Common base data references GAEZ
-    kw['base_data_workability_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "workability_index.tif")
-    kw['base_data_toxicity_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "toxicity_index.tif")
-    kw['base_data_rooting_conditions_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "rooting_conditions_index.tif")
-    kw['base_data_rainfed_land_percent_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "rainfed_land_percent.tif") # REMOVE?
-    kw['base_data_protected_areas_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "protected_areas_index.tif")
-    kw['base_data_oxygen_availability_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "oxygen_availability_index.tif")
-    kw['base_data_nutrient_retention_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "nutrient_retention_index.tif")
-    kw['base_data_nutrient_availability_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "nutrient_availability_index.tif")
-    kw['base_data_irrigated_land_percent_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "irrigated_land_percent.tif")
-    kw['base_data_excess_salts_index_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "excess_salts_index.tif")
-    kw['base_data_cultivated_land_percent_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "cultivated_land_percent.tif")
-    kw['base_data_crop_suitability_uri'] = os.path.join(kw['base_data_dir'], 'crops', 'gaez', "crop_suitability.tif")
-    ### kw['base_data_precip_2070_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi7012_Annual_Precipitation.tif")
-    ### kw['base_data_temperature_2070_uri'] = os.path.join(kw['base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi701_Annual_Mean_Temperature.tif")
-    kw['base_data_slope_uri'] = os.path.join(kw['base_data_dir'], 'elevation', "slope.tif")
-    kw['base_data_altitude_uri'] = os.path.join(kw['base_data_dir'], 'elevation', "altitude.tif")
+    kw['workability_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "workability_index.tif")
+    kw['toxicity_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "toxicity_index.tif")
+    kw['rooting_conditions_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "rooting_conditions_index.tif")
+    kw['rainfed_land_percent_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "rainfed_land_percent.tif") # REMOVE?
+    kw['protected_areas_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "protected_areas_index.tif")
+    kw['oxygen_availability_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "oxygen_availability_index.tif")
+    kw['nutrient_retention_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "nutrient_retention_index.tif")
+    kw['nutrient_retention_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "nutrient_retention_index.tif")
+    kw['nutrient_availability_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "nutrient_availability_index.tif")
+    kw['irrigated_land_percent_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "irrigated_land_percent.tif")
+    kw['excess_salts_index_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "excess_salts_index.tif")
+    kw['cultivated_land_percent_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "cultivated_land_percent.tif")
+    kw['crop_suitability_uri'] = os.path.join(kw['project_base_data_dir'], 'crops', 'gaez', "crop_suitability.tif")
+    # kw['precip_2070_uri'] = os.path.join(kw['project_base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi7012_Annual_Precipitation.tif")
+    # kw['temperature_2070_uri'] = os.path.join(kw['project_base_data_dir'], 'climate/worldclim/ar5_projections/5min', "ensemble_mean_85bi701_Annual_Mean_Temperature.tif")
+    kw['slope_uri'] = os.path.join(kw['project_base_data_dir'], "slope.tif")
+    kw['altitude_uri'] = os.path.join(kw['project_base_data_dir'], "altitude.tif")
 
     kw['crop_names'] = [
         'barley',
@@ -175,33 +126,32 @@ def get_default_kw(**kw):
         'nitrogen_fixer',
     ]
 
-    kw['data_registry'] = OrderedDict() # a name, uri air to indicate any map used int he regression.
-    kw['data_registry']['workability'] = kw['base_data_workability_index_uri']
-    kw['data_registry']['toxicity'] = kw['base_data_toxicity_index_uri']
-    kw['data_registry']['rooting_conditions'] = kw['base_data_rooting_conditions_index_uri']
-    kw['data_registry']['rainfed_land_p'] = kw['base_data_rainfed_land_percent_uri']
-    kw['data_registry']['protected_areas'] = kw['base_data_protected_areas_index_uri']
-    kw['data_registry']['oxygen_availability'] = kw['base_data_oxygen_availability_index_uri']
-    kw['data_registry']['nutrient_retention'] = kw['base_data_nutrient_retention_index_uri']
-    kw['data_registry']['nutrient_availability'] = kw['base_data_nutrient_availability_index_uri']
-    kw['data_registry']['irrigated_land_percent'] = kw['base_data_irrigated_land_percent_uri']
-    kw['data_registry']['excess_salts'] = kw['base_data_excess_salts_index_uri']
-    kw['data_registry']['cultivated_land_percent'] = kw['base_data_cultivated_land_percent_uri']
-    kw['data_registry']['crop_suitability'] = kw['base_data_crop_suitability_uri']
-    ### w['data_registry']['temperature'] = kw['base_data_temperature_2070_uri']
-    kw['data_registry']['slope'] = kw['base_data_slope_uri']
-    kw['data_registry']['altitude'] = kw['base_data_altitude_uri']
-    # kw['data_registry']['base_data_country_names_uri'] = kw['base_data_country_names_uri']
-    # kw['data_registry']['base_data_country_ids_raster_uri'] = kw['base_data_country_ids_raster_uri']
-    # kw['data_registry']['base_data_calories_per_cell_uri'] = kw['base_data_calories_per_cell_uri']
-    kw['data_registry']['proportion_cropland'] = kw['proportion_cropland_uri']
-    kw['data_registry']['precip'] = kw['base_data_precip_uri']
-    kw['data_registry']['temperature'] = kw['base_data_temperature_uri']
-    kw['data_registry']['gdp_gecon'] = os.path.join(kw['base_data_dir'], 'socioeconomic\\nordhaus_gecon', 'gdp_per_capita_2000_5m.tif')
-    kw['data_registry']['minutes_to_market'] = kw['base_data_minutes_to_market_uri']
+    # kw['data_registry'] = OrderedDict() # a name, uri air to indicate any map used int he regression.
+    # kw['data_registry']['workability'] = kw['base_data_workability_index_uri']
+    # kw['data_registry']['toxicity'] = kw['base_data_toxicity_index_uri']
+    # kw['data_registry']['rooting_conditions'] = kw['base_data_rooting_conditions_index_uri']
+    # kw['data_registry']['rainfed_land_p'] = kw['base_data_rainfed_land_percent_uri']
+    # kw['data_registry']['protected_areas'] = kw['base_data_protected_areas_index_uri']
+    # kw['data_registry']['oxygen_availability'] = kw['base_data_oxygen_availability_index_uri']
+    # kw['data_registry']['nutrient_retention'] = kw['base_data_nutrient_retention_index_uri']
+    # kw['data_registry']['nutrient_availability'] = kw['base_data_nutrient_availability_index_uri']
+    # kw['data_registry']['irrigated_land_percent'] = kw['base_data_irrigated_land_percent_uri']
+    # kw['data_registry']['excess_salts'] = kw['base_data_excess_salts_index_uri']
+    # kw['data_registry']['cultivated_land_percent'] = kw['base_data_cultivated_land_percent_uri']
+    # kw['data_registry']['crop_suitability'] = kw['base_data_crop_suitability_uri']
+    # kw['data_registry']['temperature'] = kw['base_data_temperature_2070_uri']
+    # kw['data_registry']['slope'] = kw['base_data_slope_uri']
+    # kw['data_registry']['altitude'] = kw['base_data_altitude_uri']
+    # # kw['data_registry']['base_data_country_names_uri'] = kw['base_data_country_names_uri']
+    # # kw['data_registry']['base_data_country_ids_raster_uri'] = kw['base_data_country_ids_raster_uri']
+    # # kw['data_registry']['base_data_calories_per_cell_uri'] = kw['base_data_calories_per_cell_uri']
+    # # kw['data_registry']['proportion_cropland'] = kw['proportion_cropland_uri']
+    # # kw['data_registry']['precip'] = kw['base_data_precip_uri']
+    # # kw['data_registry']['temperature'] = kw['base_data_temperature_uri']
+    # kw['data_registry']['gdp_gecon'] = os.path.join(kw['base_data_dir'], 'socioeconomic\\nordhaus_gecon', 'gdp_per_capita_2000_5m.tif')
+    # kw['data_registry']['minutes_to_market'] = kw['base_data_minutes_to_market_uri']
 
     # NOTE: Here i made a unique lists of vars used in eachregression
-    # Possibly connect this with hb.stats to more systematically convert a list of vars to a list of modified (squared) vars, etc.
     kw['linear_fit_no_endogenous_var_names'] = ['precip', 'temperature', 'minutes_to_market', 'workability', 'toxicity', 'rooting_conditions', 'protected_areas', 'oxygen_availability', 'nutrient_retention', 'nutrient_availability', 'excess_salts', 'crop_suitability', 'gdp_gecon', 'altitude', 'slope']
     kw['full_fit_no_endogenous_var_names'] = ['precip', 'precip_2 ', 'precip_3', 'temperature', 'temperature_2', 'temperature_3', 'minutes_to_market', 'minutes_to_market_2', 'minutes_to_market_3', 'workability', 'toxicity', 'rooting_conditions', 'protected_areas', 'oxygen_availability', 'nutrient_retention', 'nutrient_availability', 'excess_salts ', 'crop_suitability', 'crop_suitability_2', 'crop_suitability_3', 'gdp_gecon', 'gdp_gecon_2', 'gdp_gecon_3', 'altitude', 'altitude_2', 'altitude_3', 'slope', 'slope_2', 'slope_3']
 
@@ -209,9 +159,9 @@ def get_default_kw(**kw):
 
     return kw
 
-def execute_old(**kw):
-    """Calls functions corresponding to keywords"""
 
+
+def execute(**kw):
     L.info('Executing script.')
     if not kw:
         kw = get_default_kw()
@@ -219,13 +169,6 @@ def execute_old(**kw):
     hb.create_dirs(kw['run_dir'])
 
     kw = setup_dirs(**kw)
-
-    if kw['copy_base_data']:
-        # NOTE Asymmetry, because this is just a copy process, we have both cases go to basis_dir. This allows recopy based on existence.
-        kw['base_data_copy_dir'] = os.path.join(kw['basis_dir'], 'base_data_copy')
-        kw = copy_base_data(**kw)
-    else:
-        kw['base_data_copy_dir'] = os.path.join(kw['basis_dir'], 'base_data_copy')
 
     if kw['create_baseline_regression_data']:
         kw['baseline_regression_data_uri'] = os.path.join(kw['run_dir'], 'baseline_regression_data.csv')
@@ -262,53 +205,53 @@ def execute_old(**kw):
     else:
         kw['crop_type_depvars_uri'] = os.path.join(kw['basis_dir'], 'crop_type_depvars.csv')
 
-    if kw['convert_aggregated_crop_type_dfs_to_geotiffs']:
-        kw['aggregated_crop_data_dir_2'] = os.path.join(kw['run_dir'], 'aggregated_crop_data')
-        kw['data_registry']['c3_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PotassiumApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_NitrogenApplication_Rate.tif')
+    # if kw['convert_aggregated_crop_type_dfs_to_geotiffs']:
+    #     kw['aggregated_crop_data_dir_2'] = os.path.join(kw['run_dir'], 'aggregated_crop_data')
+    #     kw['data_registry']['c3_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c3_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c3_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['c3_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c3_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c3_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['c4_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c4_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c4_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['c4_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c4_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c4_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['nitrogen_fixer_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['nitrogen_fixer_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['nitrogen_fixer_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_NitrogenApplication_Rate.tif')
+    #
+    #     hb.create_dirs(kw['aggregated_crop_data_dir_2'])
+    #     kw = convert_aggregated_crop_type_dfs_to_geotiffs(**kw)
+    # else:
+    #     kw['aggregated_crop_data_dir_2'] = os.path.join(kw['basis_dir'], 'aggregated_crop_data')
+    #     kw['data_registry']['c3_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c3_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c3_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['c3_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c3_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c3_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['c4_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c4_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c4_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['c4_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['c4_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['c4_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_NitrogenApplication_Rate.tif')
+    #     kw['data_registry']['nitrogen_fixer_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PotassiumApplication_Rate.tif')
+    #     kw['data_registry']['nitrogen_fixer_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PhosphorusApplication_Rate.tif')
+    #     kw['data_registry']['nitrogen_fixer_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_NitrogenApplication_Rate.tif')
 
-        hb.create_dirs(kw['aggregated_crop_data_dir_2'])
-        kw = convert_aggregated_crop_type_dfs_to_geotiffs(**kw)
-    else:
-        kw['aggregated_crop_data_dir_2'] = os.path.join(kw['basis_dir'], 'aggregated_crop_data')
-        kw['data_registry']['c3_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PotassiumApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_NitrogenApplication_Rate.tif')
 
-
-    if kw['calc_optimal_regression_equations_among_linear_cubed']:
-        kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['run_dir'], 'optimal_regression_equations_among_linear_cubed')
-        kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
-        hb.create_dirs(kw['optimal_regression_equations_among_linear_cubed_dir'])
-        kw = calc_optimal_regression_equations_among_linear_cubed(**kw)
-    else:
-        kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['basis_dir'], 'optimal_regression_equations_among_linear_cubed')
-        kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
+    #if kw['calc_optimal_regression_equations_among_linear_cubed']:
+    #    kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['run_dir'], 'optimal_regression_equations_among_linear_cubed')
+    #    kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
+    #    hb.create_dirs(kw['optimal_regression_equations_among_linear_cubed_dir'])
+    #     kw = calc_optimal_regression_equations_among_linear_cubed(**kw)
+    # else:
+    #     kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['basis_dir'], 'optimal_regression_equations_among_linear_cubed')
+    #     kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
 
 
     if kw['do_crop_types_regression']:
@@ -367,230 +310,6 @@ def execute_old(**kw):
 
     return kw
 
-def execute(**kw):
-    L.info('Executing script.')
-    if not kw:
-        kw = get_default_kw()
-
-    hb.create_dirs(kw['run_dir'])
-
-    kw = setup_dirs(**kw)
-
-    if kw['copy_base_data']:
-        # NOTE Asymmetry, because this is just a copy process, we have both cases go to basis_dir. This allows recopy based on existence.
-        kw['base_data_copy_dir'] = os.path.join(kw['basis_dir'], 'base_data_copy')
-        kw = copy_base_data(**kw)
-    else:
-        kw['base_data_copy_dir'] = os.path.join(kw['basis_dir'], 'base_data_copy')
-
-    if kw['sum_earthstat']:
-        kw['crop_production_tons_per_cell_uri'] = os.path.join(kw['run_dir'], 'crop_production_tons_per_cell.tif')
-        kw['crop_yield_per_ha_uri'] = os.path.join(kw['run_dir'], 'crop_yield_per_ha.tif')
-        kw['crop_harvested_area_ha_uri'] = os.path.join(kw['run_dir'], 'crop_harvested_area_ha.tif')
-        kw['crop_harvested_area_fraction_uri'] = os.path.join(kw['run_dir'], 'crop_harvested_area_fraction.tif')
-
-        kw = sum_earthstat(**kw)
-    else:
-        kw['crop_production_tons_per_cell_uri'] = os.path.join(kw['basis_dir'], 'crop_production_tons_per_cell.tif')
-        kw['crop_yield_per_ha_uri'] = os.path.join(kw['basis_dir'], 'crop_yield_per_ha.tif')
-        kw['crop_harvested_area_ha_uri'] = os.path.join(kw['basis_dir'], 'crop_harvested_area_ha.tif')
-        kw['crop_harvested_area_fraction_uri'] = os.path.join(kw['basis_dir'], 'crop_harvested_area_fraction.tif')
-
-    if kw['resample_from_30s']:
-        kw['resampled_data_dir'] = os.path.join(kw['run_dir'], 'resampled')
-        hb.create_dirs(kw['resampled_data_dir'])
-        kw = resample_from_30s(**kw)
-    else:
-        kw['resampled_data_dir'] = os.path.join(kw['basis_dir'], 'resampled')
-
-    if kw['process_gaez_inputs']:
-        kw['gaez_data_dir'] = os.path.join(kw['run_dir'], 'gaez')
-        hb.create_dirs(kw['gaez_data_dir'])
-        kw = process_gaez_inputs(**kw)
-    else:
-        kw['gaez_data_dir'] = os.path.join(kw['basis_dir'], 'gaez')
-
-    if kw['create_spatial_lags']:
-        kw['spatial_lags_dir'] = os.path.join(kw['run_dir'], 'spatial_lags')
-        kw['adjacent_neighbors_uri'] = os.path.join(kw['spatial_lags_dir'], 'adjacent_neighbors.tif')
-        kw['distance_weighted_5x5_neighbors_uri'] = os.path.join(kw['spatial_lags_dir'], 'distance_weighted_5x5_neighbors.tif')
-
-        hb.create_dirs(kw['spatial_lags_dir'])
-        kw = create_spatial_lags(**kw)
-    else:
-        kw['spatial_lags_dir'] = os.path.join(kw['basis_dir'], 'spatial_lags')
-        kw['adjacent_neighbors_uri'] = os.path.join(kw['spatial_lags_dir'], 'adjacent_neighbors.tif')
-        kw['distance_weighted_5x5_neighbors_uri'] = os.path.join(kw['spatial_lags_dir'], 'distance_weighted_5x5_neighbors.tif')
-
-
-    if kw['create_baseline_regression_data']:
-        kw['baseline_regression_data_uri'] = os.path.join(kw['run_dir'], 'baseline_regression_data.csv')
-        kw['nan_mask_uri'] = os.path.join(kw['run_dir'], 'nan_mask.csv')
-        kw = create_baseline_regression_data(**kw)
-    else:
-        kw['baseline_regression_data_uri'] = os.path.join(kw['basis_dir'], 'baseline_regression_data.csv')
-        kw['nan_mask_uri'] = os.path.join(kw['basis_dir'], 'nan_mask.csv')
-
-    if kw['clean_baseline_regression_data']:
-        kw = clean_baseline_regression_data(**kw)
-    else:
-        pass
-
-    if kw['create_nan_mask']:
-        kw['nan_mask_uri'] = os.path.join(kw['run_dir'], 'nan_mask.csv')
-        kw = create_nan_mask(**kw)
-    else:
-        kw['nan_mask_uri'] = os.path.join(kw['basis_dir'], 'nan_mask.csv')
-
-    if kw['aggregate_crops_by_type']:
-        kw['aggregated_crop_data_dir'] = os.path.join(kw['run_dir'], 'aggregated_crop_data')
-        kw['aggregated_crop_data_csv_uri'] = os.path.join(kw['aggregated_crop_data_dir'], 'aggregated_crop_data.csv')
-        hb.create_dirs(kw['aggregated_crop_data_dir'])
-        kw = aggregate_crops_by_type(**kw)
-    else:
-        kw['aggregated_crop_data_dir'] = os.path.join(kw['basis_dir'], 'aggregated_crop_data')
-        kw['aggregated_crop_data_csv_uri'] = os.path.join(kw['aggregated_crop_data_dir'], 'aggregated_crop_data.csv')
-
-    if kw['convert_aggregated_crop_type_dfs_to_geotiffs']:
-        kw['aggregated_crop_data_dir_2'] = os.path.join(kw['run_dir'], 'aggregated_crop_data')
-        kw['data_registry']['c3_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PotassiumApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_NitrogenApplication_Rate.tif')
-
-        hb.create_dirs(kw['aggregated_crop_data_dir_2'])
-        kw = convert_aggregated_crop_type_dfs_to_geotiffs(**kw)
-    else:
-        kw['aggregated_crop_data_dir_2'] = os.path.join(kw['basis_dir'], 'aggregated_crop_data')
-        kw['data_registry']['c3_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c3_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c3_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_annual_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_annual_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_annual_NitrogenApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PotassiumApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['c4_perennial_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'c4_perennial_NitrogenApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PotassiumApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PotassiumApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_PhosphorusApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_PhosphorusApplication_Rate.tif')
-        kw['data_registry']['nitrogen_fixer_NitrogenApplication_Rate'] = os.path.join(kw['aggregated_crop_data_dir_2'], 'nitrogen_fixer_NitrogenApplication_Rate.tif')
-
-
-    if kw['calc_optimal_regression_equations_among_linear_cubed']:
-        kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['run_dir'], 'optimal_regression_equations_among_linear_cubed')
-        kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
-        hb.create_dirs(kw['optimal_regression_equations_among_linear_cubed_dir'])
-        kw = calc_optimal_regression_equations_among_linear_cubed(**kw)
-    else:
-        kw['optimal_regression_equations_among_linear_cubed_dir'] = os.path.join(kw['basis_dir'], 'optimal_regression_equations_among_linear_cubed')
-        kw['optimal_regression_equations_among_linear_cubed_results_uri'] = os.path.join(kw['optimal_regression_equations_among_linear_cubed_dir'], 'combined_regression_results.json')
-
-    if kw['calc_simple_regression']:
-        kw['simple_regression_dir'] = os.path.join(kw['run_dir'], 'simple_regression')
-        kw['simple_regression_results_uri'] = os.path.join(kw['simple_regression_dir'], 'combined_regression_results.json')
-
-        hb.create_dirs(kw['simple_regression_dir'])
-        kw = calc_simple_regression(**kw)
-    else:
-        kw['simple_regression_dir'] = os.path.join(kw['basis_dir'], 'simple_regression')
-        kw['simple_regression_results_uri'] = os.path.join(kw['simple_regression_dir'], 'combined_regression_results.json')
-
-
-    if kw['calc_crop_types_regression']:
-        kw['crop_types_regression_dir'] = os.path.join(kw['run_dir'], 'crop_types_regression')
-        kw['crop_types_regression_results_uri'] = os.path.join(kw['crop_types_regression_dir'], 'combined_regression_results.json')
-        hb.create_dirs(kw['crop_types_regression_dir'])
-        kw = calc_crop_types_regression(**kw)
-    else:
-        kw['crop_types_regression_dir'] = os.path.join(kw['basis_dir'], 'crop_types_regression')
-        kw['crop_types_regression_results_uri'] = os.path.join(kw['crop_types_regression_dir'], 'combined_regression_results.json')
-
-
-    if kw['combine_crop_types_regressions_into_single_file']:
-        kw['crop_types_regression_dir_2'] = os.path.join(kw['run_dir'], 'crop_types_regression')
-        kw['crop_types_regression_results_uri'] = os.path.join(kw['crop_types_regression_dir_2'], 'crop_types_regression_results.json')
-
-        hb.create_dirs(kw['crop_types_regression_dir_2'])
-        kw = combine_crop_types_regressions_into_single_file(**kw)
-    else:
-        kw['crop_types_regression_dir_2'] = os.path.join(kw['basis_dir'], 'crop_types_regression')
-        kw['crop_types_regression_results_uri'] = os.path.join(kw['crop_types_regression_dir_2'], 'crop_types_regression_results.json')
-
-
-    if kw['create_climate_scenarios_df']:
-        kw['climate_scenarios_csv_uri'] = os.path.join(kw['run_dir'], 'climate_scenarios.csv')
-        kw['climate_scenarios_csv_with_nan_uri'] = os.path.join(kw['run_dir'], 'climate_scenarios_with_nan.csv')
-        kw = create_climate_scenarios_df(**kw)
-    else:
-        kw['climate_scenarios_csv_uri'] = os.path.join(kw['basis_dir'], 'climate_scenarios.csv')
-        kw['climate_scenarios_csv_with_nan_uri'] = os.path.join(kw['basis_dir'], 'climate_scenarios_with_nan.csv')
-
-    if kw['project_crop_specific_calories_per_cell_based_on_climate']:
-        kw['crop_specific_projection_csvs_dir'] = os.path.join(kw['run_dir'], 'crop_specific_projections')
-        hb.create_dirs(kw['crop_specific_projection_csvs_dir'])
-        kw = project_crop_specific_calories_per_cell_based_on_climate(**kw)
-    else:
-        kw['crop_specific_projection_csvs_dir'] = os.path.join(kw['basis_dir'], 'crop_specific_projections')
-
-    if kw['project_crop_types_calories_per_cell_based_on_climate']:
-        kw['crop_types_projection_csvs_dir'] = os.path.join(kw['run_dir'], 'crop_types_projections')
-        hb.create_dirs(kw['crop_types_projection_csvs_dir'])
-        kw = project_crop_types_calories_per_cell_based_on_climate(**kw)
-    else:
-        kw['crop_types_projection_csvs_dir'] = os.path.join(kw['basis_dir'], 'crop_types_projections')
-
-    if kw['write_crop_specific_projections_from_reg_results']:
-        kw['crop_specific_projections_geotiffs_dir'] = os.path.join(kw['run_dir'], 'crop_specific_projections_geotiffs')
-        hb.create_dirs(kw['crop_specific_projections_geotiffs_dir'])
-        kw = write_crop_specific_projections_from_reg_results(**kw)
-    else:
-        kw['crop_specific_projections_geotiffs_dir'] = os.path.join(kw['basis_dir'], 'crop_specific_projections_geotiffs')
-
-
-    if kw['write_crop_types_projections_from_reg_results']:
-        kw['crop_types_projections_geotiffs_dir'] = os.path.join(kw['run_dir'], 'crop_types_projections_geotiffs')
-        hb.create_dirs(kw['crop_types_projections_geotiffs_dir'])
-        kw = write_crop_types_projections_from_reg_results(**kw)
-    else:
-        kw['crop_types_projections_geotiffs_dir'] = os.path.join(kw['basis_dir'], 'crop_types_projections_geotiffs')
-
-    if kw['combine_regressions_into_single_table']:
-        kw = combine_regressions_into_single_table(**kw)
-    else:
-        pass
-
-    if kw['create_results_for_each_rcp_ssp_pair']:
-        kw['results_for_each_rcp_ssp_pair_dir'] = os.path.join(kw['run_dir'], 'results_for_each_rcp_ssp_pair')
-        hb.create_dirs(kw['results_for_each_rcp_ssp_pair_dir'])
-        kw = create_results_for_each_rcp_ssp_pair(**kw)
-    else:
-        kw['results_for_each_rcp_ssp_pair_dir'] = os.path.join(kw['basis_dir'], 'results_for_each_rcp_ssp_pair')
-
-
-    if kw['create_maps_for_each_rcp_ssp_pair']:
-        kw['maps_for_each_rcp_ssp_pair_dir'] = os.path.join(kw['run_dir'], 'maps_for_each_rcp_ssp_pair')
-        hb.create_dirs(kw['maps_for_each_rcp_ssp_pair_dir'])
-        kw = create_maps_for_each_rcp_ssp_pair(**kw)
-    else:
-        kw['maps_for_each_rcp_ssp_pair_dir'] = os.path.join(kw['basis_dir'], 'maps_for_each_rcp_ssp_pair')
-
-
-    return kw
-
 
 def setup_dirs(**kw):
     L.debug('Making default dirs.')
@@ -601,8 +320,6 @@ def setup_dirs(**kw):
     return kw
 
 def copy_base_data(**kw):
-    """If input missing in basis_dir, use the corresponding base_data."""
-
     hb.create_dirs(kw['base_data_copy_dir'])
 
     to_copy = [
@@ -615,10 +332,10 @@ def copy_base_data(**kw):
         kw['base_data_ag_value_2000_uri'],
         kw['base_data_minutes_to_market_uri'],
         kw['base_data_ag_value_2000_uri'],
-        ###         kw['base_data_pop_30s_uri'],
-        ###         kw['base_data_proportion_pasture_uri'],
-        ###         kw['base_data_faostat_pasture_uri'],
-        ###       kw['base_data_ag_value_2005_spam_uri'],
+        kw['base_data_pop_30s_uri'],
+        kw['base_data_proportion_pasture_uri'],
+        kw['base_data_faostat_pasture_uri'],
+        kw['base_data_ag_value_2005_spam_uri'],
         kw['base_data_workability_index_uri'],
         kw['base_data_toxicity_index_uri'],
         kw['base_data_rooting_conditions_index_uri'],
@@ -631,15 +348,14 @@ def copy_base_data(**kw):
         kw['base_data_excess_salts_index_uri'],
         kw['base_data_cultivated_land_percent_uri'],
         kw['base_data_crop_suitability_uri'],
-        ### kw['base_data_precip_2070_uri'],
-        ### kw['base_data_temperature_2070_uri'],
+        kw['base_data_precip_2070_uri'],
+        kw['base_data_temperature_2070_uri'],
         kw['base_data_slope_uri'],
         kw['base_data_altitude_uri'],
     ]
 
     local_keys = [
-        'country_names_uri',
-        'country_ids_raster_uri',
+
         'calories_per_cell_uri',
         'precip_uri',
         'temperature_uri',
@@ -681,8 +397,8 @@ def copy_base_data(**kw):
 
 
 def create_baseline_regression_data(**kw):
-    """Convert spatial data in csv df format:
-    Create a csv file with regression inputs uris: baseline_regression_data_uris"""
+
+    kw['precip_uri'] = os.path.join(kw['project_base_data_dir'], 'bio12.bil')
 
     # For specific files, you can specify both a name and a uri, which can be different from the dict key (name)
     input_uris = OrderedDict()
@@ -690,12 +406,12 @@ def create_baseline_regression_data(**kw):
     input_uris['precip'] = kw['precip_uri']
     input_uris['temperature'] = kw['temperature_uri']
     input_uris['gdp_2000'] = kw['gdp_2000_uri']
-    input_uris['ag_value_2000'] = kw['ag_value_2000_uri']
+    # input_uris['ag_value_2000'] = kw['ag_value_2000_uri']
     input_uris['minutes_to_market'] = kw['minutes_to_market_uri']
-    #input_uris['adjacent_neighbors'] = kw['adjacent_neighbors_uri']
-    #input_uris['distance_weighted_5x5_neighbors'] = kw['distance_weighted_5x5_neighbors_uri']
-    #input_uris['ag_value_2005_spam'] = kw['ag_value_2005_spam_uri']
-    input_uris['proportion_cropland'] = kw['proportion_cropland_uri']
+    # input_uris['adjacent_neighbors'] = kw['adjacent_neighbors_uri']
+    # input_uris['distance_weighted_5x5_neighbors'] = kw['distance_weighted_5x5_neighbors_uri']
+    # input_uris['ag_value_2005_spam'] = kw['ag_value_2005_spam_uri']
+    # input_uris['proportion_cropland'] = kw['proportion_cropland_uri']
     input_uris['workability'] = os.path.join(kw['gaez_data_dir'], 'workability_continuous.tif')
     input_uris['toxicity'] = os.path.join(kw['gaez_data_dir'], 'toxicity_continuous.tif')
     input_uris['rooting_conditions'] = os.path.join(kw['gaez_data_dir'], 'rooting_conditions_continuous.tif')
@@ -704,27 +420,32 @@ def create_baseline_regression_data(**kw):
     input_uris['nutrient_retention'] = os.path.join(kw['gaez_data_dir'], 'nutrient_retention_continuous.tif')
     input_uris['nutrient_availability'] = os.path.join(kw['gaez_data_dir'], 'nutrient_availability_continuous.tif')
     input_uris['excess_salts'] = os.path.join(kw['gaez_data_dir'], 'excess_salts_continuous.tif')
-    #input_uris['irrigated_land_percent'] = kw['base_data_irrigated_land_percent_uri']
-    #input_uris['rainfed_land_percent'] = kw['base_data_rainfed_land_percent_uri']
-    #input_uris['cultivated_land_percent'] = kw['base_data_cultivated_land_percent_uri']
-    input_uris['crop_suitability'] = kw['base_data_crop_suitability_uri']
-    input_uris['gdp_gecon'] = os.path.join(kw['base_data_dir'], 'socioeconomic\\nordhaus_gecon', 'gdp_per_capita_2000_5m.tif')
+    # input_uris['irrigated_land_percent'] = kw['base_data_irrigated_land_percent_uri']
+    # input_uris['rainfed_land_percent'] = kw['base_data_rainfed_land_percent_uri']
+    # input_uris['cultivated_land_percent'] = kw['base_data_cultivated_land_percent_uri']
+    # input_uris['crop_suitability'] = kw['base_data_crop_suitability_uri']
+    input_uris['gdp_gecon'] = os.path.join(kw['project_base_data_dir'], 'gdp_per_capita_2000_5m.tif')
     input_uris['slope'] = kw['slope_uri']
     input_uris['altitude'] = kw['altitude_uri']
 
-    for crop_name in kw['crop_names']:
-        input_uris[crop_name + ''] = os.path.join(kw['base_data_price_per_ha_masked_dir'], crop_name + '_production_value_per_ha_gt01_national_price.tif')
-        input_uris[crop_name + '_calories_per_ha'] = os.path.join(kw['base_data_crop_calories_dir'], crop_name + '_calories_per_ha_masked.tif')
-        input_uris[crop_name + '_proportion_cultivated'] = os.path.join(kw['base_data_dir'], 'crops/earthstat/crop_production', crop_name + '_HarvAreaYield_Geotiff', crop_name + '_HarvestedAreaFraction.tif')
+    for crop_type in kw['crop_types']:
+        input_uris[crop_type + '_calories'] = os.path.join(kw['project_base_data_dir'],(crop_type + '_calories.tif'))
 
-    for crop_name in kw['crop_names']:
-        for nutrient in ['Potassium', 'Phosphorus', 'Nitrogen']:
-            name = crop_name + '_' + nutrient + 'Application_Rate'
-            input_uris[name] = os.path.join(kw['base_data_dir'], 'crops/earthstat/crop_fertilizer/Fertilizer_' + crop_name, crop_name + '_' + nutrient + 'Application_Rate.tif')
 
-    # Specify Dirs where all tifs will be added.
-    input_dirs = []
-    input_dirs.append(kw['resampled_data_dir'])
+    # START HERE and re-add these while clarifying when we are using the top 16 crops vs ALL the crops.
+    # for crop_name in kw['crop_names']:
+    #     input_uris[crop_name + ''] = os.path.join(kw['base_data_price_per_ha_masked_dir'], crop_name + '_production_value_per_ha_gt01_national_price.tif')
+    #     input_uris[crop_name + '_calories_per_ha'] = os.path.join(kw['base_data_crop_calories_dir'], crop_name + '_calories_per_ha_masked.tif')
+    #     input_uris[crop_name + '_proportion_cultivated'] = os.path.join(kw['project_base_data_dir'], 'crops/earthstat/crop_production', crop_name + '_HarvAreaYield_Geotiff', crop_name + '_HarvestedAreaFraction.tif')
+
+    # for crop_name in kw['crop_names']:
+    #     for nutrient in ['Potassium', 'Phosphorus', 'Nitrogen']:
+    #         name = crop_name + '_' + nutrient + 'Application_Rate'
+    #         input_uris[name] = os.path.join(kw['project_base_data_dir'], 'crops/earthstat/crop_fertilizer/Fertilizer_' + crop_name, crop_name + '_' + nutrient + 'Application_Rate.tif')
+    #
+    # # Specify Dirs where all tifs will be added.
+    # input_dirs = []
+    # input_dirs.append(kw['resampled_data_dir'])
 
     # Iterate through input_uris adding them.  Currently also fixes fertilizer nan issues.
     af_names_list = []
@@ -734,7 +455,9 @@ def create_baseline_regression_data(**kw):
             af = hb.ArrayFrame(uri)
             # NOTE, originaly i had this as af = af.where() which failed to modify the af before going in.
             modified_array = np.where((af.data < 0) | (af.data > 9999999999999999), 0, af.data)
-            modified_af = hb.ArrayFrame(modified_array, af)
+            temp1_path = hb.temp('.tif', remove_at_exit=True, folder=kw['run_dir'])
+            hb.save_array_as_geotiff(modified_array, temp1_path, kw['calories_per_cell_uri'])
+            modified_af = hb.ArrayFrame(temp1_path)
             af_names_list.append(name)
             df = hb.convert_af_to_1d_df(modified_af)
             dfs_list.append(df)
@@ -744,35 +467,35 @@ def create_baseline_regression_data(**kw):
             df = hb.convert_af_to_1d_df(af)
             dfs_list.append(df)
 
-    for dir in input_dirs:
-        uris_list = hb.get_list_of_file_uris_recursively(dir, filter_extensions='.tif')
-        for uri in uris_list:
-            if 'Fertilizer' in uri or '_calories_per_ha_masked' in uri or '_HarvestedAreaFraction' in uri or 'altitude' in uri or 'slope' in uri:
-                name = hb.explode_uri(uri)['file_root']
-                af = hb.ArrayFrame(uri)
-                # NOTE, originaly i had this as af = af.where() which failed to modify the af before going in.
-                modified_array = np.where(af.data < 0, 0, af.data)
-                modified_af = hb.ArrayFrame(modified_array, af)
-                af_names_list.append(name)
-                df = hb.convert_af_to_1d_df(modified_af)
-                dfs_list.append(df)
-            else:
-                name = hb.explode_uri(uri)['file_root']
-                af = hb.ArrayFrame(uri)
-                af_names_list.append(name)
-                df = hb.convert_af_to_1d_df(af)
-                dfs_list.append(df)
+    # for dir in input_dirs:
+    #     uris_list = hb.get_list_of_file_uris_recursively(dir, filter_extensions='.tif')
+    #     for uri in uris_list:
+    #         if 'Fertilizer' in uri or '_calories_per_ha_masked' in uri or '_HarvestedAreaFraction' in uri or 'altitude' in uri or 'slope' in uri:
+    #             name = hb.explode_uri(uri)['file_root']
+    #             af = hb.ArrayFrame(uri)
+    #             # NOTE, originaly i had this as af = af.where() which failed to modify the af before going in.
+    #             modified_array = np.where(af.data < 0, 0, af.data)
+    #             modified_af = hb.ArrayFrame(modified_array, af)
+    #             af_names_list.append(name)
+    #             df = hb.convert_af_to_1d_df(modified_af)
+    #             dfs_list.append(df)
+    #         else:
+    #             name = hb.explode_uri(uri)['file_root']
+    #             af = hb.ArrayFrame(uri)
+    #             af_names_list.append(name)
+    #             df = hb.convert_af_to_1d_df(af)
+    #             dfs_list.append(df)
 
     L.info('Concatenating all dataframes.')
-    # CAREFUL, here all my data are indeed positive but this could chanhb.
+    # CAREFUL, here all my data are indeed positive but this could change.
     # REMEMBER, we are just determining what gets written to disk here, not what is regressed.
     # LEARNING POINT: stack_dfs was only for time series space-time-frames and just happend to work because i didn't structure my data in the wrong way..
-    # df = hb.stack_dfs(dfs_list, af_names_list)
+    # df = ge.stack_dfs(dfs_list, af_names_list)
     df = hb.concatenate_dfs_horizontally(dfs_list, af_names_list)
     df[df < 0] = 0.0
 
 
-    # Rather than getting rid of all cells without crops, just get rid of those not on lahb.
+    # Rather than getting rid of all cells without crops, just get rid of those not on land.
     df[df['excess_salts'] == 255.0] = np.nan
 
     # kw['nan_mask_uri'] = 'nan_mask.csv'
@@ -786,11 +509,8 @@ def create_baseline_regression_data(**kw):
     return kw
 
 def create_crop_types_regression_data(**kw):
-    """Writes csv file 'crop_types_regression_data_uri' from 'baseline_regression_data_uri',
-    with only columns in kw['linear_fit_no_endogenous_var_names']    """
-
     L.info('Running create_crop_types_regression_data. ')
-    L.debug('   Open the baseline regression_data which is HUGE and also has data on crop-specific stuff, then write it to a file specific to the IPBES tasks. In the event that I go back to crop-specific analysis, this may need to be switched back to crop specific.')
+    L.debug('   Open the beasline regression_data which is HUGE and also has data on crop-specific stuff, then write it to a file specific to the IPBES tasks. In the event that I go back to crop-specific analysis, this may need to be switched back to crop specific.')
     df = pd.read_csv(kw['baseline_regression_data_uri'], index_col=['Unnamed: 0'])  # Could speed up here with usecols='excess_salts
 
     output_df = pd.DataFrame(index=df.index)
@@ -803,30 +523,8 @@ def create_crop_types_regression_data(**kw):
 
     return kw
 
-def create_crop_types_depvars(**kw):
-    """Writes csv file 'crop_type_depvars_uri' from kw['aggregated_crop_data_csv_uri'],
-    using '_calories_per_ha' columns """
-
-    L.info('Running create_crop_types_depvars. ')
-    L.debug('   Open aggregated_crop_data.csv and pull out ipbes specific stuff.')
-    df = pd.read_csv(kw['aggregated_crop_data_csv_uri'], index_col=['Unnamed: 0'])  # Could speed up here with usecols='excess_salts
-
-    output_df = pd.DataFrame(index=df.index)
-
-    print(output_df)
-    for col_name in df.columns:
-        if '_calories_per_ha' in col_name:
-            output_df[col_name] = df[col_name]
-            hb.describe_dataframe(output_df)
-    output_df.to_csv(kw['crop_type_depvars_uri'])
-
-    return kw
-
 
 def create_nan_mask(**kw):
-    """Create NaN mask for cells not on land (df['excess_salts'] == 255.0]).
-    Save in csv file kw['nan_mask_uri']"""
-    
     # LEARNING POINT , ommitting index_col=['Unnamed: 0'] was a massive time-sink mistake. Deal with index columns more carefully.
     df = pd.read_csv(kw['baseline_regression_data_uri'], index_col=['Unnamed: 0']) # Could speed up here with usecols='excess_salts
     df[df['excess_salts'] == 255.0] = np.nan
@@ -844,7 +542,6 @@ def aggregate_crops_by_type(**kw):
 
     baseline_regression_data_df = pd.read_csv(kw['baseline_regression_data_uri'])
     baseline_regression_data_df.set_index('Unnamed: 0', inplace=True)
-    # baseline_regression_data_df = hb.read_csv_sample(kw['baseline_regression_data_uri'], .001)
 
     vars_names_to_aggregate = [
         'production_value_per_ha',
@@ -1010,37 +707,75 @@ def aggregate_crops_by_type(**kw):
 
     ]
 
-    # Create a DF of zeros, ready to hold the summed results for each crop type. Indix given will  be from baseline_regression_data_df so that spatial indices match.
-    crop_types_df = pd.DataFrame(np.zeros(len(baseline_regression_data_df.index)), index=baseline_regression_data_df.index)
+    # # Create a DF of zeros, ready to hold the summed results for each crop type. Indix given will  be from baseline_regression_data_df so that spatial indices match.
+    # crop_types_df = pd.DataFrame(np.zeros(len(baseline_regression_data_df.index)), index=baseline_regression_data_df.index)
 
-    # Iterate through crop_types
-    for crop_type, crops in crop_membership.items():
-        L.info('Aggregating ' + str(crop_type) + ' ' + str(crops))
-        for var_name_to_aggregate in vars_names_to_aggregate:
-            L.info('  var_name_to_aggregate ' + var_name_to_aggregate)
-            output_col_name = crop_type + '_' + var_name_to_aggregate
-            crop_types_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
-            for crop in crops:
-                input_col_name = crop + '_' + var_name_to_aggregate
-                if input_col_name in baseline_regression_data_df:
-                    crop_types_df[output_col_name] += baseline_regression_data_df[input_col_name]
+    # # Iterate through crop_types
+    # for crop_type, crops in crop_membership.items():
+    #     L.info('Aggregating ' + str(crop_type) + ' ' + str(crops))
+    #     for var_name_to_aggregate in vars_names_to_aggregate:
+    #         L.info('  var_name_to_aggregate ' + var_name_to_aggregate)
+    #         output_col_name = crop_type + '_' + var_name_to_aggregate
+    #         crop_types_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
+    #         for crop in crops:
+    #             input_col_name = crop + '_' + var_name_to_aggregate
+    #             if input_col_name in baseline_regression_data_df:
+    #                 crop_types_df[output_col_name] += baseline_regression_data_df[input_col_name]
+    #
+    #         crop_types_df[output_col_name][crop_types_df[output_col_name] > 1e+12] = 0.0
 
-            crop_types_df[output_col_name][crop_types_df[output_col_name] > 1e+12] = 0.0
+    kw['c3_annual_calories_path'] = os.path.join(kw['project_base_data_dir'], "c3_annual_calories.tif")
+    kw['c3_perennial_calories_path'] = os.path.join(kw['project_base_data_dir'], "c3_perennial_calories.tif")
+    kw['c4_annual_calories_path'] = os.path.join(kw['project_base_data_dir'], "c4_annual_calories.tif")
+    kw['c4_perennial_calories_path'] = os.path.join(kw['project_base_data_dir'], "c4_perennial_calories.tif")
+    kw['nitrogen_fixer_calories_path'] = os.path.join(kw['project_base_data_dir'], "nitrogen_fixer_calories.tif")
+
+    crop_types_df = pd.DataFrame(np.zeros(len(baseline_regression_data_df.index)),
+                                 index=baseline_regression_data_df.index)
+    # for crop in crops:
+    var_name_to_aggregate = 'calories'
+    for crop_type in kw['crop_types']:
+        input_col_name = crop_type + '_' + var_name_to_aggregate
+        output_col_name = crop_type + '_' + var_name_to_aggregate ####Why duplicate since input_col_name == output_col_name?
+        crop_types_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
+
+        crop_types_df[output_col_name] += baseline_regression_data_df[input_col_name]
+
+
+        crop_types_df[output_col_name][crop_types_df[output_col_name] > 1e+12] = 0.0
 
     crop_types_df.to_csv(kw['aggregated_crop_data_csv_uri'])
 
     return kw
 
+
+def create_crop_types_depvars(**kw):
+    L.info('Running create_crop_types_depvars. ')
+    L.debug('   Open aggregated_crop_data.csv and pull out ipbes specific stuff.')
+    df = pd.read_csv(kw['aggregated_crop_data_csv_uri'], index_col=['Unnamed: 0'])  # Could speed up here with usecols='excess_salts
+
+    output_df = pd.DataFrame(index=df.index)
+
+    print(output_df)
+    for col_name in df.columns:
+        if '_calories_per_ha' in col_name:
+            output_df[col_name] = df[col_name]
+            hb.describe_dataframe(output_df)
+    output_df.to_csv(kw['crop_type_depvars_uri'])
+
+    return kw
+
+
+
+
 def convert_aggregated_crop_type_dfs_to_geotiffs(**kw):
-    """Make aggregated_crop_type geotiffs in kw['aggregated_crop_data_dir_2']"""
-
-
     match_af = hb.ArrayFrame(kw['calories_per_cell_uri'])
 
     df = pd.read_csv(kw['aggregated_crop_data_csv_uri'])
     df.set_index('Unnamed: 0', inplace=True)
 
-    cols_to_plot = ['c3_annual_production_value_per_ha',
+    cols_to_plot = [
+        'c3_annual_production_value_per_ha',
     'c3_annual_calories_per_ha',
     'c3_annual_proportion_cultivated',
     'c3_annual_PotassiumApplication_Rate',
@@ -1082,13 +817,7 @@ def convert_aggregated_crop_type_dfs_to_geotiffs(**kw):
 
 
 def do_crop_types_regression(**kw):
-    """Sensored regression (max likelihood approach non linear regression) to predict yield on each grid cell,
-    with sensor (contraint) that yield > 0.
-
-    Performs regression on each crop type"""
-    
     def gen_r_code_for_crop(crop_name):
-        """Regression performed in R (No sensored regression suitable options found in Python)"""
 
         r_string = """library(tidyverse)
             library(MASS)
@@ -1134,12 +863,11 @@ def do_crop_types_regression(**kw):
             """ + crop_name + """_fit <- lm(""" + crop_name + """_formula_string, data=d_""" + crop_name + """)
             "<^>""" + crop_name + """_full_fit_no_endogenous<^>"
             summary(""" + crop_name + """_fit)
-            "<^>"
-           
-        """
+            "<^>" """
 
         return r_string
 
+    test = 0
     jobs = []
     current_thread = 0
     num_concurrent = 6
@@ -1255,7 +983,7 @@ def create_climate_scenarios_df(**kw):
     df = hb.concatenate_dfs_horizontally(dfs_list, af_names_list)
     df[df < 0] = 0.0
 
-    # Rather than getting rid of all cells without crops, just get rid of those not on lahb.
+    # Rather than getting rid of all cells without crops, just get rid of those not on land.
     # df[nan_mask_df.ix[:, 0] == np.nan] = np.nan
     df[nan_mask_df == np.nan] = np.nan
     df.to_csv(kw['climate_scenarios_csv_with_nan_uri'])
@@ -1446,7 +1174,7 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
     current_area_fraction['c4_annual'] = r"C:\OneDrive\Projects\ipbes\intermediate\states_2015\c4ann ^ area_fraction ^ C4 annual crops.tif"
 
     calories_per_cell_af = hb.ArrayFrame(kw['calories_per_cell_uri'])
-    calories_per_cell_df = convert_af_to_1d_df(calories_per_cell_af)
+    calories_per_cell_df = hb.convert_af_to_1d_df(calories_per_cell_af)
     # calories_per_cell_af.show(keep_output=True)
 
     L.info('Loading nan_mask_uri')
@@ -1465,7 +1193,6 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
 
         print('current_area_fraction_input_path', current_area_fraction_input_path)
 
-        hb.show_raster_uri(current_area_fraction_input_path)
         hb.align_dataset_to_match(current_area_fraction_input_path, kw['calories_per_cell_uri'], tmp1, resample_method='near')
 
 
@@ -1498,13 +1225,10 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
 
                 projected_change_path = os.path.join(kw['maps_for_each_rcp_ssp_pair_dir'], filename.replace('.csv', '.tif'))
                 hb.save_array_as_geotiff(projected_change_array, projected_change_path, kw['calories_per_cell_uri'], data_type_override=7)
-                hb.show_array(projected_change_array, title='CC effect on ' + crop_type + ', all cells', output_uri=projected_change_path.replace('.tif', '.png'))
 
                 projected_change_2015_extent_array = np.where(current_area_fraction_resampled > 0, projected_change_array, np.nan)
                 projected_change_2015_extent_uri =  projected_change_path.replace('.tif', '_2015_extent.tif')
                 projected_change_2015_extent = hb.ArrayFrame(projected_change_2015_extent_array, earthstat_crop_type_current, output_uri=projected_change_2015_extent_uri)
-                hb.show_array(projected_change_2015_extent_array, title='CC effect on ' + crop_type + ', 2015 extent', output_uri=projected_change_2015_extent_uri.replace('.tif', '.png'))
-
 
                 if 'sspcur' in filename:
                     area_fraction = current_area_fraction_resampled
@@ -1531,12 +1255,10 @@ def create_maps_for_each_rcp_ssp_pair(**kw):
                     projected_change_2050_extent_array = np.where(year_2050_crop_type_projected_extent > 0, projected_change_array, np.nan)
                     projected_change_2050_extent_uri =  projected_change_path.replace('.tif', '_2050_extent.tif')
                     projected_change_2050_extent = hb.ArrayFrame(projected_change_2050_extent_array, earthstat_crop_type_current, output_uri=projected_change_2050_extent_uri)
-                    hb.show_array(projected_change_2050_extent_array, title='CC effect on ' + crop_type + ', 2050 extent', output_uri=projected_change_2050_extent_uri.replace('.tif', '.png'))
 
                 calories_per_cell = area_fraction * ha_per_cell_5m * projected_change_array
                 calories_per_cell_uri =  os.path.join(kw['maps_for_each_rcp_ssp_pair_dir'], filename.replace('.csv', '_change_per_cell.tif'))
                 calories_per_cell_af = hb.ArrayFrame(calories_per_cell, earthstat_crop_type_current, output_uri=calories_per_cell_uri)
-                hb.show_array(calories_per_cell, title='CC effect on ' + crop_type + ', total per cell', output_uri=calories_per_cell_uri.replace('.tif', '.png'))
     return kw
 
 def create_aggregated_results(**kw):
@@ -1567,11 +1289,7 @@ def create_aggregated_results(**kw):
         print(np.sum(output_array))
         hb.save_array_as_geotiff(output_array, output_path, match_path)
 
-        overlay_shp_uri = os.path.join(hb.BASE_DATA_DIR, 'misc', 'countries')
-        hb.show_raster_uri(output_path, output_uri=output_path.replace('.tif', '.png'), title=hb.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
-                           cbar_label='Change in kcal per grid-cell', vmin=-1.0e+11, vmax=3.0e+11, vmid=0,
-                           overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles') #cbar_percentiles=[1, 50, 99],
-
+        overlay_shp_uri = os.path.join(kw['project_base_data_dir'], 'misc', 'countries')
     return kw
 
 
@@ -1586,12 +1304,7 @@ def create_percent_changes(**kw):
 
     output_baseline_calories_path = os.path.join(kw['percent_changes_dir'], 'baseline_calories.png')
 
-    overlay_shp_uri = os.path.join(hb.BASE_DATA_DIR, 'misc', 'countries')
-    hb.show_raster_uri(baseline_calories_path, output_uri=output_baseline_calories_path, title=hb.explode_uri(baseline_calories_path)['file_root'].replace('_', ' ').title(),
-                       cbar_label='kcal per grid-cell', cbar_percentiles=[1, 50, 99], vmid=0,
-                       overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles',
-                       fig_height=12)  # cbar_percentiles=[1, 50, 99], vmin=-1.6e+12, vmax=4.5e+11,
-
+    overlay_shp_uri = os.path.join(kw['project_base_data_dir'], 'misc', 'countries')
 
     # Because we will be dividing the new by the old, we put a 1 for all cells with zero production to avoid div by zero errors. Note that this means the percent change will have limited relevance past some %
     baseline_calories_zerofix = np.where(baseline_calories==0, 1, baseline_calories).astype(np.float64)
@@ -1599,52 +1312,58 @@ def create_percent_changes(**kw):
     for path in hb.list_filtered_paths_recursively(kw['aggregated_results_dir'], include_extensions='.tif'):
         output_path = os.path.join(kw['percent_changes_dir'], hb.explode_path(path)['file_root'] + '.png').replace('_caloric_production', '_total_caloric_production')
         calorie_change = hb.as_array(path).astype(np.float64)
-        # TODO START HERE, Switching to the linear regression results helped, but now I need to consider scaling to have them all meet future demand so as to match IAMs.
+        # TODOO START HERE, Switching to the linear regression results helped, but now I need to consider scaling to have them all meet future demand so as to match IAMs.
         # This doesn't make sense and isntead I should somehow have thenegative changes BOTTOM OUT.
         # total = (calorie_change/1000) + baseline_calories
         total = calorie_change + baseline_calories
         total = np.where(total<0, 0, total)
         print('sum', path, np.sum(total))
-        hb.show_array(total, output_uri=output_path, title=hb.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
-                      cbar_label='kcal per grid-cell',
-                      overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles')  # cbar_percentiles=[1, 50, 99], vmin=-1.6e+12, vmax=4.5e+11,
-
 
         percent_change = total / baseline_calories_zerofix
         output_path = os.path.join(kw['percent_changes_dir'], hb.explode_path(path)['file_root'] + '.png').replace('_caloric_production', '_percent_change')
-        hb.show_array(percent_change, output_uri=output_path, title=hb.explode_uri(output_path)['file_root'].replace('_', ' ').title(),
-                      cbar_label='kcal per grid-cell', vmin=-1, vmid=0.0, vmax=1,
-                      overlay_shp_uri=overlay_shp_uri, use_basemap=True, bounding_box='clip_poles')  # cbar_percentiles=[1, 50, 99], vmin=-1.6e+12, vmax=4.5e+11,
     return kw
 
 
 
-
+step = 2
 main = 'here'
 if __name__ == '__main__':
     kw = get_default_kw()
 
     ## Set runtime_conditionals
-    kw['copy_base_data'] = 1 # This one ALWAYS needs to be run because it sets some of the default uris but it doesn't slow down because it checks for existence first
-    kw['sum_earthstat'] = 0 #
-    kw['resample_from_30s'] = 0 # Resample fails because calories.tif not projected. Used manual fix.
-    kw['process_gaez_inputs'] = 1 # Could do
-    kw['create_spatial_lags'] = 0 # Skipping for now.
-    kw['create_baseline_regression_data'] = 1
-    kw['create_crop_types_regression_data'] = 1
-    kw['create_crop_types_depvars'] = 1
-    kw['create_nan_mask'] = 1
-    kw['aggregate_crops_by_type'] = 0
-    kw['convert_aggregated_crop_type_dfs_to_geotiffs'] = 0 #later
-    kw['calc_optimal_regression_equations_among_linear_cubed'] = 0
-    kw['do_crop_types_regression'] = 1
-    kw['combine_crop_types_regressions_into_single_file'] = 1
-    kw['create_climate_scenarios_df'] = 1
-    kw['combine_regressions_into_single_table'] = 1
-    kw['create_results_for_each_rcp_ssp_pair'] = 1
-    kw['create_maps_for_each_rcp_ssp_pair'] = 1
-    kw['create_aggregated_results'] = 1
-    kw['create_percent_changes'] = 1
+    if step == 1:
+        kw['create_baseline_regression_data'] = 1
+        kw['create_crop_types_regression_data'] = 1
+        kw['create_crop_types_depvars'] = 1
+        kw['create_nan_mask'] = 1
+        kw['aggregate_crops_by_type'] = 1
+
+        ## kw['convert_aggregated_crop_type_dfs_to_geotiffs'] = 0 ## This step is obsolete, isn't it ?
+        kw['calc_optimal_regression_equations_among_linear_cubed'] = 0 ## This step is obsolete, isn't it ?
+        kw['do_crop_types_regression'] = 0
+        kw['combine_crop_types_regressions_into_single_file'] = 0
+        kw['create_climate_scenarios_df'] = 0
+        kw['combine_regressions_into_single_table'] = 0
+        kw['create_results_for_each_rcp_ssp_pair'] = 0
+        kw['create_maps_for_each_rcp_ssp_pair'] = 0
+        kw['create_aggregated_results'] = 0
+        kw['create_percent_changes'] = 0
+    elif step == 2:
+        kw['create_baseline_regression_data'] = 0
+        kw['create_crop_types_regression_data'] = 0
+        kw['create_crop_types_depvars'] = 0
+        kw['create_nan_mask'] = 0
+        kw['aggregate_crops_by_type'] = 0
+
+        kw['do_crop_types_regression'] = 1
+        kw['combine_crop_types_regressions_into_single_file'] = 1
+
+        kw['create_climate_scenarios_df'] = 0
+        kw['combine_regressions_into_single_table'] = 0
+        kw['create_results_for_each_rcp_ssp_pair'] = 0
+        kw['create_maps_for_each_rcp_ssp_pair'] = 0
+        kw['create_aggregated_results'] = 0
+        kw['create_percent_changes'] = 0
 
 
 
@@ -1654,7 +1373,7 @@ if __name__ == '__main__':
     # kw['crop_names'] = ['wheat']
 
     # Hacky way to set match af
-    kw['calories_per_cell_uri'] = os.path.join(kw['basis_dir'], 'base_data_copy', 'calories_per_cell.tif')
+    #kw['calories_per_cell_uri'] = os.path.join(kw['basis_dir'], 'base_data_copy', 'calories_per_cell.tif')
 
     kw = execute(**kw)
 
