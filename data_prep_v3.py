@@ -62,6 +62,12 @@ def link_base_data(p):
     p.minutes_to_market_path = os.path.join(p.input_dir, 'demographic/jrc/minutes_to_market_5m.tif')
     #p.pop_30s_path = os.path.join(p.input_dir, 'demographic/ciesin', 'pop_30s_REDO_FROM_WEB.tif')
 
+def create_land_mask():
+    countries_af = hb.ArrayFrame('../ipbes_invest_crop_yield_project/input/Cartographic/country_ids.tif')
+    df = hb.convert_af_to_1d_df(countries_af)
+    df['land_mask'] = df[0].apply(lambda x: 1 if x > 0 else 0)
+    df = df.drop(0,axis=1)
+    return df
 
 def create_baseline_regression_data(p):
     p.baseline_regression_data_path = os.path.join(p.cur_dir, 'baseline_regression_data.csv')
@@ -122,23 +128,16 @@ def create_baseline_regression_data(p):
         df = hb.concatenate_dfs_horizontally(dfs_list, af_names_list)
         df[df < 0] = 0.0
 
-        # # Rather than getting rid of all cells without crops, just get rid of those not on land.
-        # df[df['excess_salts'] == 255.0] = np.nan
-        #
-        # # p.nan_mask_path'] = 'nan_mask.csv'
-        # df_nan = df['excess_salts']
-        # df_nan.to_csv(p.nan_mask_path)
+        # Get rid of the oceans cells
+        df['pixel_id'] = df.index
+        land_mask = create_land_mask()
+        df = df.merge(land_mask, right_index=True, left_on='pixel_id')
+        df_land = df[df['land_mask']==1]
 
-        df = df.dropna()
+        df_land = df_land.dropna()
 
-        df.to_csv(p.baseline_regression_data_path)
+        df_land.to_csv(p.baseline_regression_data_path)
 
-def create_land_mask():
-    countries_af = hb.ArrayFrame('../ipbes_invest_crop_yield_project/input/Cartographic/country_ids.tif')
-    df = hb.convert_af_to_1d_df(countries_af)
-    df['land_mask'] = df[0].apply(lambda x: 1 if x > 0 else 0)
-    df = df.drop(0,axis=1)
-    return df
 
 
 def aggregate_crops_by_type(p):
