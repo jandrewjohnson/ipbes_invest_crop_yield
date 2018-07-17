@@ -377,7 +377,7 @@ def aggregate_crops_by_type(p):
     crop_types_df.to_csv(p.aggregated_crop_data_csv_path)
 
 
-def merge_full_baseline_data():
+#def merge_full_baseline_data():
     # Actually let's do that when we load the datasets in the next script?
     # merge baseline_df and crop_types_df on 'pixel_id' colmn
 
