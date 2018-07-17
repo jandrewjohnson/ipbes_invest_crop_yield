@@ -11,14 +11,10 @@ L = hb.get_logger('data_prep_v3')
 def setup_dirs(p):
     L.debug('Making default dirs.')
 
-    print('project_dir', p.project_dir)
-
     p.input_dir = os.path.join(p.project_dir, 'input')
     p.intermediate_dir = os.path.join(p.project_dir, 'intermediate')
     p.run_dir = os.path.join(p.project_dir, 'intermediate')
     p.output_dir = os.path.join(p.project_dir, 'output')
-    # p.project_base_data_dir = os.path.join(p.project_dir, '../ipbes_invest_crop_yield_base_data')
-    p.project_base_data_dir = r'C:\OneDrive\Repositories\ipbes_invest_crop_yield_base_data'
 
 
     dirs = [p.project_dir, p.input_dir, p.intermediate_dir, p.run_dir, p.output_dir]
@@ -26,45 +22,45 @@ def setup_dirs(p):
 
 
 def link_base_data(p):
-    p.calories_per_cell_path = os.path.join(p.project_base_data_dir, 'calories_per_cell.tif')
+    p.calories_per_cell_path = os.path.join(p.input_dir, 'calories_per_cell.tif')
 
 
     
     # Cartographic
-    p.country_names_path = os.path.join(p.project_base_data_dir, 'cartographic/country_names.csv')
-    p.country_ids_raster_path = os.path.join(p.project_base_data_dir, 'cartographic/country_ids.tif')    #
-    p.ha_per_cell_5m_path = os.path.join(p.project_base_data_dir, 'cartographic/ha_per_cell_5m.tif')
+    p.country_names_path = os.path.join(p.input_dir, 'cartographic/country_names.csv')
+    p.country_ids_raster_path = os.path.join(p.input_dir, 'cartographic/country_ids.tif')    #
+    p.ha_per_cell_5m_path = os.path.join(p.input_dir, 'cartographic/ha_per_cell_5m.tif')
 
     # Crop
 
     # Climate
-    p.precip_path = os.path.join(p.project_base_data_dir, 'climate/worldclim/bio12.bil')
-    p.temperature_path = os.path.join(p.project_base_data_dir, 'climate/worldclim/bio1.bil')
+    p.precip_path = os.path.join(p.input_dir, 'climate/worldclim/bio12.bil')
+    p.temperature_path = os.path.join(p.input_dir, 'climate/worldclim/bio1.bil')
 
     # Topography
-    p.slope_path = os.path.join(p.project_base_data_dir, "topography/worldclim/slope.tif")
-    p.altitude_path = os.path.join(p.project_base_data_dir, "topography/worldclim/altitude.tif")
+    p.slope_path = os.path.join(p.input_dir, "topography/worldclim/slope.tif")
+    p.altitude_path = os.path.join(p.input_dir, "topography/worldclim/altitude.tif")
 
     # Soil
-    p.workability_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "workability_index.tif")
-    p.toxicity_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "toxicity_index.tif")
-    p.rooting_conditions_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "rooting_conditions_index.tif")
-    # p.rainfed_land_percent_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "rainfed_land_percent.tif")  #
-    p.protected_areas_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "protected_areas_index.tif")
-    p.oxygen_availability_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "oxygen_availability_index.tif")
-    p.nutrient_retention_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
-    p.nutrient_retention_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
-    p.nutrient_availability_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "nutrient_availability_index.tif")
-    p.irrigated_land_percent_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "irrigated_land_percent.tif")
-    p.excess_salts_index_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "excess_salts_index.tif")
-    # p.cultivated_land_percent_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "cultivated_land_percent.tif")
-    p.crop_suitability_path = os.path.join(p.project_base_data_dir, 'soil', 'gaez', "crop_suitability.tif")
+    p.workability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "workability_index.tif")
+    p.toxicity_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "toxicity_index.tif")
+    p.rooting_conditions_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "rooting_conditions_index.tif")
+    # p.rainfed_land_percent_path = os.path.join(p.input_dir, 'soil', 'gaez', "rainfed_land_percent.tif")  #
+    p.protected_areas_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "protected_areas_index.tif")
+    p.oxygen_availability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "oxygen_availability_index.tif")
+    p.nutrient_retention_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
+    p.nutrient_retention_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
+    p.nutrient_availability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_availability_index.tif")
+    p.irrigated_land_percent_path = os.path.join(p.input_dir, 'soil', 'gaez', "irrigated_land_percent.tif")
+    p.excess_salts_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "excess_salts_index.tif")
+    # p.cultivated_land_percent_path = os.path.join(p.input_dir, 'soil', 'gaez', "cultivated_land_percent.tif")
+    p.crop_suitability_path = os.path.join(p.input_dir, 'soil', 'gaez', "crop_suitability.tif")
 
     # Demographic
-    p.gdp_2000_path = os.path.join(p.project_base_data_dir, 'demographic/worldbank/gdp_2000.tif')
-    p.gdp_gecon = os.path.join(p.project_base_data_dir, 'demographic/nordhaus/gdp_per_capita_2000_5m.tif')
-    p.minutes_to_market_path = os.path.join(p.project_base_data_dir, 'demographic/jrc/minutes_to_market_5m.tif')
-    p.pop_30s_path = os.path.join(p.project_base_data_dir, 'demographic/ciesin', 'pop_30s_REDO_FROM_WEB.tif')
+    p.gdp_2000_path = os.path.join(p.input_dir, 'demographic/worldbank/gdp_2000.tif')
+    p.gdp_gecon = os.path.join(p.input_dir, 'demographic/nordhaus/gdp_per_capita_2000_5m.tif')
+    p.minutes_to_market_path = os.path.join(p.input_dir, 'demographic/jrc/minutes_to_market_5m.tif')
+    p.pop_30s_path = os.path.join(p.input_dir, 'demographic/ciesin', 'pop_30s_REDO_FROM_WEB.tif')
 
 
 def create_baseline_regression_data(p):
@@ -358,7 +354,7 @@ def aggregate_crops_by_type(p):
 
 main = 'here'
 if __name__ =='__main__':
-    p = hb.ProjectFlow()
+    p = hb.ProjectFlow('../ipbes_invest_crop_yield_project')
 
     setup_dirs_task = p.add_task(setup_dirs)
     link_base_data_task = p.add_task(link_base_data)
