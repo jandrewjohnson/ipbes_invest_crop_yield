@@ -8,6 +8,28 @@ import hazelbean as hb
 
 L = hb.get_logger('data_prep_v3')
 
+
+def convert_af_to_1d_df(af):
+    array = af.data.flatten()
+    # print('   CALLED convert_af_to_1d_df on array of size' + str(len(array)))
+    df = pd.DataFrame(array)
+    return df
+
+
+def concatenate_dfs_horizontally(df_list, column_headers=None):
+    """
+    Append horizontally, based on index.
+    """
+
+    df = pd.concat(df_list, axis=1)
+
+    if column_headers:
+        df.columns = column_headers
+    return df
+
+
+
+
 def setup_dirs(p):
     L.debug('Making default dirs.')
 
@@ -64,7 +86,7 @@ def link_base_data(p):
 
 def create_land_mask():
     countries_af = hb.ArrayFrame('../ipbes_invest_crop_yield_project/input/Cartographic/country_ids.tif')
-    df = hb.convert_af_to_1d_df(countries_af)
+    df = convert_af_to_1d_df(countries_af)
     df['land_mask'] = df[0].apply(lambda x: 1 if x > 0 else 0)
     df = df.drop(0,axis=1)
     return df
@@ -114,18 +136,18 @@ def create_baseline_regression_data(p):
             #     hb.save_array_as_geotiff(modified_array, tmp1, p.precip_path, projection_override=match_af.projection)
             #     modified_af = hb.ArrayFrame(tmp1)
             #     af_names_list.append(name)
-            #     df = hb.convert_af_to_1d_df(modified_af)
+            #     df = convert_af_to_1d_df(modified_af)
             #     dfs_list.append(df)
             # else:
 
             name = hb.explode_path(path)['file_root']
             af = hb.ArrayFrame(path)
             af_names_list.append(name)
-            df = hb.convert_af_to_1d_df(af)
+            df = convert_af_to_1d_df(af)
             dfs_list.append(df)
 
         L.info('Concatenating all dataframes.')
-        df = hb.concatenate_dfs_horizontally(dfs_list, af_names_list)
+        df = concatenate_dfs_horizontally(dfs_list, af_names_list)
         df[df < 0] = 0.0
 
         # Get rid of the oceans cells
@@ -139,19 +161,19 @@ def create_baseline_regression_data(p):
         df_land.to_csv(p.baseline_regression_data_path)
 
 
-
 def aggregate_crops_by_type(p):
     """CMIP6 and the land-use harmonization project have centered on 5 crop types: c3 annual, c3 perennial, c4 annual, c4 perennial, nitrogen fixer
     Aggregate the 15 crops to those four categories by modifying the baseline_regression_data."""
 
-    baseline_regression_data_df = pd.read_csv(p.baseline_regression_data_path)
-    baseline_regression_data_df.set_index('Unnamed: 0', inplace=True)
+    p.aggregated_crop_data_csv_path = os.path.join(p.cur_dir, 'aggregated_crop_data.csv')
+    baseline_regression_data_df = pd.read_csv(p.baseline_regression_data_path, index_col='pixel_id')
 
     vars_names_to_aggregate = [
         # 'production_value_per_ha',
         # 'calories_per_ha',
-        'yield_per_ha'
-        'proportion_cultivated',
+        'calories_per_ha_masked',
+        # 'yield_per_ha'
+        # 'proportion_cultivated',
         # 'PotassiumApplication_Rate',
         # 'PhosphorusApplication_Rate',
         # 'NitrogenApplication_Rate',
@@ -313,40 +335,28 @@ def aggregate_crops_by_type(p):
     ]
 
     # Create a DF of zeros, ready to hold the summed results for each crop type. Indix given will  be from baseline_regression_data_df so that spatial indices match.
+    crop_specific_df = pd.DataFrame(np.zeros(len(baseline_regression_data_df.index)), index=baseline_regression_data_df.index)
+
     crop_types_df = pd.DataFrame(np.zeros(len(baseline_regression_data_df.index)), index=baseline_regression_data_df.index)
 
     # Iterate through crop_types
     for crop_type, crops in crop_membership.items():
         L.info('Aggregating ' + str(crop_type) + ' ' + str(crops))
-        for var_name_to_aggregate in vars_names_to_aggregate:
-            L.info('  var_name_to_aggregate ' + var_name_to_aggregate)
-            output_col_name = crop_type + '_' + var_name_to_aggregate
-            crop_types_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
-            for crop in crops:
-                input_col_name = crop + '_' + var_name_to_aggregate
-                if input_col_name in baseline_regression_data_df:
-                    crop_types_df[output_col_name] += baseline_regression_data_df[input_col_name]
+        output_col_name = crop_type + '_calories_per_ha'
+        crop_specific_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
+        for crop in crops:
+            input_crop_file_name = crop + '_calories_per_ha_masked'
 
-            crop_types_df[output_col_name][crop_types_df[output_col_name] > 1e+12] = 0.0
+            input_path = os.path.join(p.input_dir, 'crops/crop_calories', input_crop_file_name + '.tif')
+            print('input_path', input_path)
+            af = hb.ArrayFrame(input_path)
+            crop_specific_df[input_crop_file_name] = convert_af_to_1d_df(af)[input_crop_file_name]
 
-    p.c3_annual_calories_path = os.path.join(p.run_dir, "c3_annual_calories.tif")
-    p.c3_perennial_calories_path = os.path.join(p.run_dir, "c3_perennial_calories.tif")
-    p.c4_annual_calories_path = os.path.join(p.run_dir, "c4_annual_calories.tif")
-    p.c4_perennial_calories_path = os.path.join(p.run_dir, "c4_perennial_calories.tif")
-    p.nitrogen_fixer_calories_path = os.path.join(p.run_dir, "nitrogen_fixer_calories.tif")
-
-    crop_types_df = pd.DataFrame(np.zeros(len(baseline_regression_data_df.index)),
-                                 index=baseline_regression_data_df.index)
-    # for crop in crops:
-    var_name_to_aggregate = 'calories'
-    for crop_type in p.crop_types:
-        input_col_name = crop_type + '_' + var_name_to_aggregate
-        output_col_name = crop_type + '_' + var_name_to_aggregate  ####Why duplicate since input_col_name == output_col_name?
-        crop_types_df[output_col_name] = np.zeros(len(baseline_regression_data_df.index))
-
-        crop_types_df[output_col_name] += baseline_regression_data_df[input_col_name]
-
-        crop_types_df[output_col_name][crop_types_df[output_col_name] > 1e+12] = 0.0
+            crop_types_df[output_col_name] += crop_specific_df[input_crop_file_name]
+            # if input_col_name in baseline_regression_data_df:
+            #     crop_specific_df[output_col_name] += crop_specific_df[output_col_name]
+            #
+        crop_types_df[output_col_name][crop_specific_df[output_col_name] > 1e+12] = 0.0
 
     crop_types_df.to_csv(p.aggregated_crop_data_csv_path)
 
@@ -358,6 +368,7 @@ def aggregate_crops_by_type(p):
         'nitrogen_fixer',
     ]
 
+
 main = 'here'
 if __name__ =='__main__':
     p = hb.ProjectFlow('../ipbes_invest_crop_yield_project')
@@ -365,14 +376,17 @@ if __name__ =='__main__':
     setup_dirs_task = p.add_task(setup_dirs)
     link_base_data_task = p.add_task(link_base_data)
     create_baseline_regression_data_task = p.add_task(create_baseline_regression_data)
+    aggregate_crops_by_type_task = p.add_task(aggregate_crops_by_type)
 
-    setup_dirs_task.run = 0
+    setup_dirs_task.run = 1
     link_base_data_task.run = 1
     create_baseline_regression_data_task.run = 1
+    aggregate_crops_by_type.run = 1
 
-    setup_dirs_task.skip_existing = 0
-    link_base_data_task.skip_existing = 0
-    create_baseline_regression_data_task.skip_existing = 0
+    setup_dirs_task.skip_existing = 1
+    link_base_data_task.skip_existing = 1
+    create_baseline_regression_data_task.skip_existing = 1
+    aggregate_crops_by_type.skip_existing = 0
 
     p.execute()
 
