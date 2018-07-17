@@ -66,8 +66,7 @@ def get_default_kw(**kw):
     # kw['proportion_cropland_uri'] = os.path.join(kw['project_base_data_dir'], 'crops/earthstat', 'proportion_cropland.tif')
     kw['country_names_uri'] = os.path.join(kw['project_base_data_dir'], 'country_names.csv')
     kw['country_ids_raster_uri'] = os.path.join(kw['project_base_data_dir'], 'country_ids.tif')
-    kw['calories_per_cell_uri'] = os.path.join(kw['project_base_data_dir'], 'calories_per_cell.tif')
-    kw['precip_uri'] = os.path.join(kw['project_base_data_dir'], 'bio12.bil')
+     kw['precip_uri'] = os.path.join(kw['project_base_data_dir'], 'bio12.bil')
     kw['temperature_uri'] = os.path.join(kw['project_base_data_dir'], 'bio1.bil')
     kw['gdp_2000_uri'] = os.path.join(kw['project_base_data_dir'], 'gdp_2000.tif')
     # kw['price_per_ha_masked_dir'] = os.path.join(kw['project_base_data_dir'], 'crops\\crop_prices_and_production_value_2000\\price_per_ha_masked')
@@ -734,6 +733,8 @@ def aggregate_crops_by_type(**kw):
     kw['c4_perennial_calories_path'] = os.path.join(kw['project_base_data_dir'], "c4_perennial_calories.tif")
     kw['nitrogen_fixer_calories_path'] = os.path.join(kw['project_base_data_dir'], "nitrogen_fixer_calories.tif")
 
+
+
     crop_types_df = pd.DataFrame(np.zeros(len(baseline_regression_data_df.index)),
                                  index=baseline_regression_data_df.index)
     # for crop in crops:
@@ -1329,7 +1330,7 @@ def create_percent_changes(**kw):
 
 
 
-step = 1
+step = 2
 main = 'here'
 if __name__ == '__main__':
     kw = get_default_kw()
