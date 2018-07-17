@@ -373,9 +373,13 @@ def aggregate_crops_by_type(p):
         # crop_types_df[output_col_name][crop_specific_df[output_col_name] > 1e+12] = 0.0
 
 
-    crop_types_df['calories_per_ha'] = sum(crop_types_df[crop_type_cal_per_ha] for crop_type_cal_per_ha in (crop_types_df.columns - 'pixel_id') )
+    crop_types_df['calories_per_ha'] = sum(crop_types_df[crop_type_cal_per_ha] for crop_type_cal_per_ha in [crop_type + '_calories_per_ha' for crop_type in p.crop_types])
     crop_types_df.to_csv(p.aggregated_crop_data_csv_path)
 
+
+def merge_full_baseline_data():
+    # Actually let's do that when we load the datasets in the next script?
+    # merge baseline_df and crop_types_df on 'pixel_id' colmn
 
 main = 'here'
 if __name__ =='__main__':
