@@ -66,7 +66,7 @@ def get_default_kw(**kw):
     # kw['proportion_cropland_uri'] = os.path.join(kw['project_base_data_dir'], 'crops/earthstat', 'proportion_cropland.tif')
     kw['country_names_uri'] = os.path.join(kw['project_base_data_dir'], 'country_names.csv')
     kw['country_ids_raster_uri'] = os.path.join(kw['project_base_data_dir'], 'country_ids.tif')
-     kw['precip_uri'] = os.path.join(kw['project_base_data_dir'], 'bio12.bil')
+    kw['precip_uri'] = os.path.join(kw['project_base_data_dir'], 'bio12.bil')
     kw['temperature_uri'] = os.path.join(kw['project_base_data_dir'], 'bio1.bil')
     kw['gdp_2000_uri'] = os.path.join(kw['project_base_data_dir'], 'gdp_2000.tif')
     # kw['price_per_ha_masked_dir'] = os.path.join(kw['project_base_data_dir'], 'crops\\crop_prices_and_production_value_2000\\price_per_ha_masked')

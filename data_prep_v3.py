@@ -60,7 +60,7 @@ def link_base_data(p):
     p.gdp_2000_path = os.path.join(p.input_dir, 'demographic/worldbank/gdp_2000.tif')
     p.gdp_gecon = os.path.join(p.input_dir, 'demographic/nordhaus/gdp_per_capita_2000_5m.tif')
     p.minutes_to_market_path = os.path.join(p.input_dir, 'demographic/jrc/minutes_to_market_5m.tif')
-    p.pop_30s_path = os.path.join(p.input_dir, 'demographic/ciesin', 'pop_30s_REDO_FROM_WEB.tif')
+    #p.pop_30s_path = os.path.join(p.input_dir, 'demographic/ciesin', 'pop_30s_REDO_FROM_WEB.tif')
 
 
 def create_baseline_regression_data(p):
@@ -92,7 +92,7 @@ def create_baseline_regression_data(p):
         p.gdp_2000_path,
         p.gdp_gecon,
         p.minutes_to_market_path,
-        p.pop_30s_path,
+        #p.pop_30s_path,
     ]
 
     if p.run_this:
@@ -122,16 +122,23 @@ def create_baseline_regression_data(p):
         df = hb.concatenate_dfs_horizontally(dfs_list, af_names_list)
         df[df < 0] = 0.0
 
-        # Rather than getting rid of all cells without crops, just get rid of those not on land.
-        df[df['excess_salts'] == 255.0] = np.nan
-
-        # p.nan_mask_path'] = 'nan_mask.csv'
-        df_nan = df['excess_salts']
-        df_nan.to_csv(p.nan_mask_path)
+        # # Rather than getting rid of all cells without crops, just get rid of those not on land.
+        # df[df['excess_salts'] == 255.0] = np.nan
+        #
+        # # p.nan_mask_path'] = 'nan_mask.csv'
+        # df_nan = df['excess_salts']
+        # df_nan.to_csv(p.nan_mask_path)
 
         df = df.dropna()
 
         df.to_csv(p.baseline_regression_data_path)
+
+def create_land_mask():
+    countries_af = hb.ArrayFrame('../ipbes_invest_crop_yield_project/input/Cartographic/country_ids.tif')
+    df = hb.convert_af_to_1d_df(countries_af)
+    df['land_mask'] = df[0].apply(lambda x: 1 if x > 0 else 0)
+    df = df.drop(0,axis=1)
+    return df
 
 
 def aggregate_crops_by_type(p):
