@@ -71,7 +71,6 @@ def link_base_data(p):
     p.protected_areas_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "protected_areas_index.tif")
     p.oxygen_availability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "oxygen_availability_index.tif")
     p.nutrient_retention_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
-    p.nutrient_retention_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
     p.nutrient_availability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_availability_index.tif")
     p.irrigated_land_percent_path = os.path.join(p.input_dir, 'soil', 'gaez', "irrigated_land_percent.tif")
     p.excess_salts_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "excess_salts_index.tif")
@@ -103,9 +102,8 @@ def create_baseline_regression_data(p):
         p.toxicity_index_path,
         p.rooting_conditions_index_path,
         # p.rainfed_land_percent_path,
-        # p.protected_areas_index_path,
+        p.protected_areas_index_path,
         p.oxygen_availability_index_path,
-        # p.nutrient_retention_index_path,
         p.nutrient_retention_index_path,
         p.nutrient_availability_index_path,
         # p.irrigated_land_percent_path,
@@ -377,7 +375,7 @@ def aggregate_crops_by_type(p):
     # Actually let's do that when we load the datasets in the next script?
     # merge baseline_df and crop_types_df on 'pixel_id' colmn
 
-def load_data(p):
+def load_data(p,subset=False):
 
     if p.run_this:
         crop_types_df = pd.read_csv(p.aggregated_crop_data_csv_path)
@@ -385,6 +383,95 @@ def load_data(p):
         print(df_land.shape,crop_types_df.shape)
 
         df = df_land.merge(crop_types_df,how='outer',on='pixel_id')
+
+        if subset==True:
+            df = df.sample(frac=0.02, replace=False, weights=None, random_state=None, axis=0)
+
+        elif subset==False: #Save validation data
+            x = df.drop(['calories_per_ha'], axis=1)
+            y = df['calories_per_ha']
+
+            X, X_validation, Y, y_validation = train_test_split(x, y)
+
+            df = X.merge(Y,how='outer',left_index,right_index)
+
+        # Remove cal_per_ha per crop type for now
+        df = df.drop(labels=['c3_annual_calories_per_ha', 'c3_perennial_calories_per_ha',
+                             'c4_annual_calories_per_ha', 'c4_perennial_calories_per_ha',
+                             'nitrogen_fixer_calories_per_ha'], axis=1)
+
+        # Remove helper columns (not features)
+        df = df.drop(labels=['Unnamed: 0', 'country_ids',
+                             'ha_per_cell_5m'], axis=1)
+
+        df = df.dropna()
+
+        df = df[df['calories_per_ha'] != 0]
+
+        df.set_index('pixel_id')
+
+        p.df = df
+
+def data_transformation(p,how):
+    df = p.df
+
+    if p.run_this:
+        dfTransformed = pd.DataFrame.copy(df)
+
+        if how =='log':
+        dfTransformed.loc = np.log(dfTransformed['calories_per_ha'])
+
+        elif how =='bin':
+        dfTransformed = pd.cut(df['calories_per_ha'], bins=5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
+
+        elif how =='logbin':
+        dfLogBin['calories_per_cell'] = pd.cut(dfLogBin['calories_per_cell'], 5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
+
+
+## regression can be:
+
+## lr = LinearRegression()
+## xgbreg = xgb.XGBRegressor(n_estimators=100, learning_rate=0.08, gamma=0, subsample=0.75,
+##                           colsample_bytree=1, max_depth=7)
+## ...
+
+def do_regression(regression,dataframe):
+    ##Must make dummies for categorical variable climate_zone
+    # dataframe = pd.get_dummies(dataframe, columns=['climate_zone'])
+    # Or just drop column if don't want dummies: x = x.drop(['climate_zone'], axis=1)
+
+    x = dataframe.drop(['calories_per_ha'], axis=1)
+    y = dataframe['calories_per_ha']
+
+    ### Cross validation scores
+    r2_scores = cross_val_score(regression, x, y, cv=10,scoring='r2')
+    mse_scores = cross_val_score(regression, x, y, cv=10, scoring='mean_squared_error')
+    mae_scores = cross_val_score(regression, x, y, cv=10, scoring='mean_absolute_error')
+
+    print('')
+    print('R2 : ', np.mean(r2_scores))
+    print('MSE : ', np.mean(mse_scores))
+    print('MAE: ', np.mean(mae_scores))
+
+def compare_predictions(regression,dataframe,show_df==True,show_plot==True):
+    x = dataframe.drop(['calories_per_ha'], axis=1)
+    y = dataframe['calories_per_ha']
+    X_train, X_test, y_train, y_test = train_test_split(x, y)
+
+    reg = regression.fit(X_train, y_train)
+    y_predicted = reg.predict(X_test)
+
+    compare = pd.DataFrame()
+    compare['y_test'] = y_test
+    compare['predicted'] = y_predicted
+
+    if show_df == True:
+        print(compare)
+
+    if show_plot == True:
+        ax = compare.plot.scatter(x='y_test',y='predicted',s=0.5)
+        ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
+        plt.show()
 
 main = 'here'
 if __name__ =='__main__':
