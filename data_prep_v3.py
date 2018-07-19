@@ -337,44 +337,54 @@ def aggregate_crops_by_type(p):
         'nitrogen_fixer',
     ]
 
-    # Create a DF of zeros, ready to hold the summed results for each crop type. Indix given will  be from baseline_regression_data_df so that spatial indices match.
-    crop_specific_df = pd.DataFrame(0,index=baseline_regression_data_df.index,columns=['solo_column'])
+    if p.run_this:
+        # Create a DF of zeros, ready to hold the summed results for each crop type. Indix given will  be from baseline_regression_data_df so that spatial indices match.
+        crop_specific_df = pd.DataFrame(0,index=baseline_regression_data_df.index,columns=['solo_column'])
 
-    crop_types_df = pd.DataFrame(0,index=baseline_regression_data_df.index,columns=[crop_type + '_calories_per_ha' for crop_type in p.crop_types])
+        crop_types_df = pd.DataFrame(0,index=baseline_regression_data_df.index,columns=[crop_type + '_calories_per_ha' for crop_type in p.crop_types])
 
-    # Iterate through crop_types
-    for crop_type, crops in crop_membership.items():
+        # Iterate through crop_types
+        for crop_type, crops in crop_membership.items():
 
-        L.info('Aggregating ' + str(crop_type) + ' ' + str(crops))
-        crop_type_col_name = crop_type + '_calories_per_ha'
-
-
-        # iterate through crops
-        for crop in crops:
-             crop_col_name = crop + '_calories_per_ha'
-             #crop_specific_df[crop_col_name] = np.zeros(len(baseline_regression_data_df.index))
-             crop_specific_df[crop_col_name] = crop_specific_df['solo_column']
-
-             input_crop_file_name = crop + '_calories_per_ha_masked'
-
-             input_path = os.path.join(p.input_dir, 'Crop/crop_calories', input_crop_file_name + '.tif')
-             af = hb.ArrayFrame(input_path)
-             crop_specific_df[crop_col_name] = convert_af_to_1d_df(af)[0]
+            L.info('Aggregating ' + str(crop_type) + ' ' + str(crops))
+            crop_type_col_name = crop_type + '_calories_per_ha'
 
 
-             crop_types_df[crop_type_col_name] += crop_specific_df[crop_col_name]
+            # iterate through crops
+            for crop in crops:
+                 crop_col_name = crop + '_calories_per_ha'
+                 #crop_specific_df[crop_col_name] = np.zeros(len(baseline_regression_data_df.index))
+                 crop_specific_df[crop_col_name] = crop_specific_df['solo_column']
 
-        # To be fixed for weird NoData too high values in inputs files: (JUSTIN?)
-        # crop_types_df[output_col_name][crop_specific_df[output_col_name] > 1e+12] = 0.0
+                 input_crop_file_name = crop + '_calories_per_ha_masked'
+
+                 input_path = os.path.join(p.input_dir, 'Crop/crop_calories', input_crop_file_name + '.tif')
+                 af = hb.ArrayFrame(input_path)
+                 crop_specific_df[crop_col_name] = convert_af_to_1d_df(af)[0]
 
 
-    crop_types_df['calories_per_ha'] = sum(crop_types_df[crop_type_cal_per_ha] for crop_type_cal_per_ha in [crop_type + '_calories_per_ha' for crop_type in p.crop_types])
-    crop_types_df.to_csv(p.aggregated_crop_data_csv_path)
+                 crop_types_df[crop_type_col_name] += crop_specific_df[crop_col_name]
+
+            # To be fixed for weird NoData too high values in inputs files: (JUSTIN?)
+            # crop_types_df[output_col_name][crop_specific_df[output_col_name] > 1e+12] = 0.0
+
+
+        crop_types_df['calories_per_ha'] = sum(crop_types_df[crop_type_cal_per_ha] for crop_type_cal_per_ha in [crop_type + '_calories_per_ha' for crop_type in p.crop_types])
+        crop_types_df.to_csv(p.aggregated_crop_data_csv_path)
 
 
 #def merge_full_baseline_data():
     # Actually let's do that when we load the datasets in the next script?
     # merge baseline_df and crop_types_df on 'pixel_id' colmn
+
+def load_data(p):
+
+    if p.run_this:
+        crop_types_df = pd.read_csv(p.aggregated_crop_data_csv_path)
+        df_land = pd.read_csv(p.baseline_regression_data_path)
+        print(df_land.shape,crop_types_df.shape)
+
+        df = df_land.merge(crop_types_df,how='outer',on='pixel_id')
 
 main = 'here'
 if __name__ =='__main__':
@@ -384,16 +394,20 @@ if __name__ =='__main__':
     link_base_data_task = p.add_task(link_base_data)
     create_baseline_regression_data_task = p.add_task(create_baseline_regression_data)
     aggregate_crops_by_type_task = p.add_task(aggregate_crops_by_type)
+    load_data_task = p.add_task(load_data)
+
 
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
     create_baseline_regression_data_task.run = 1
-    aggregate_crops_by_type.run = 1
+    aggregate_crops_by_type_task.run = 0
+    load_data_task.run = 1
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
-    aggregate_crops_by_type.skip_existing = 1
+    aggregate_crops_by_type_task.skip_existing = 1
+    load_data_task.skip_existing = 1
 
     p.execute()
 
