@@ -4,6 +4,37 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 
+import matplotlib
+import mpl_toolkits
+from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.basemap import Basemap
+
+from sklearn.ensemble import RandomForestClassifier
+import sklearn.metrics
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score
+
+from scipy import stats
+
+import hazelbean as hb
+
+L = hb.get_logger()
+
+import seaborn as sns
+import matplotlib
+% matplotlib
+inline
+
+import matplotlib.pyplot as plt
+
+import xgboost as xgb
+
+
 import hazelbean as hb
 
 L = hb.get_logger('data_prep_v3')
@@ -47,6 +78,13 @@ def create_land_mask():
     df = df.drop(0, axis=1)
     return df
 
+def plot_col(df, col_name, shape=(4320, 2160)):
+    m = np.array(df[col_name])
+    bm = Basemap()
+    im = bm.imshow(np.flipud(m.reshape(shape)))
+    bm.drawcoastlines(linewidth=0.15, color='0.1')
+    cbar = plt.colorbar(im, orientation='horizontal')
+    plt.show()
 
 def link_base_data(p):
     
@@ -67,15 +105,12 @@ def link_base_data(p):
     p.workability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "workability_index.tif")
     p.toxicity_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "toxicity_index.tif")
     p.rooting_conditions_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "rooting_conditions_index.tif")
-    # p.rainfed_land_percent_path = os.path.join(p.input_dir, 'soil', 'gaez', "rainfed_land_percent.tif")  #
     p.protected_areas_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "protected_areas_index.tif")
     p.oxygen_availability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "oxygen_availability_index.tif")
-    p.nutrient_retention_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
     p.nutrient_retention_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_retention_index.tif")
     p.nutrient_availability_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "nutrient_availability_index.tif")
     p.irrigated_land_percent_path = os.path.join(p.input_dir, 'soil', 'gaez', "irrigated_land_percent.tif")
     p.excess_salts_index_path = os.path.join(p.input_dir, 'soil', 'gaez', "excess_salts_index.tif")
-    # p.cultivated_land_percent_path = os.path.join(p.input_dir, 'soil', 'gaez', "cultivated_land_percent.tif")
     p.crop_suitability_path = os.path.join(p.input_dir, 'soil', 'gaez', "crop_suitability.tif")
 
     # Demographic
@@ -92,7 +127,6 @@ def create_baseline_regression_data(p):
     af_names_list = []
     dfs_list = []
     paths_to_add = [
-        # p.country_names_path,
         p.country_ids_raster_path,
         p.ha_per_cell_5m_path,
         p.precip_path,
@@ -102,16 +136,10 @@ def create_baseline_regression_data(p):
         p.workability_index_path,
         p.toxicity_index_path,
         p.rooting_conditions_index_path,
-        # p.rainfed_land_percent_path,
-        # p.protected_areas_index_path,
         p.oxygen_availability_index_path,
-        # p.nutrient_retention_index_path,
         p.nutrient_retention_index_path,
         p.nutrient_availability_index_path,
-        # p.irrigated_land_percent_path,
         p.excess_salts_index_path,
-        # p.cultivated_land_percent_path,
-        # p.crop_suitability_path,
         p.gdp_2000_path,
         p.gdp_gecon,
         p.minutes_to_market_path,
@@ -121,8 +149,6 @@ def create_baseline_regression_data(p):
     if p.run_this:
         match_af = hb.ArrayFrame(paths_to_add[0])
         for path in paths_to_add:
-            print('path', path)
-            print()
             # if 'altitude' in path or 'slope' in path and 0:
             #     name = hb.explode_path(path)['file_root']
             #     af = hb.ArrayFrame(path)
@@ -133,7 +159,6 @@ def create_baseline_regression_data(p):
             #     af_names_list.append(name)
             #     df = convert_af_to_1d_df(modified_af)
             #     dfs_list.append(df)
-            # else:
 
             name = hb.explode_path(path)['file_root']
             af = hb.ArrayFrame(path)
@@ -328,7 +353,6 @@ def aggregate_crops_by_type(p):
         'castor',
 
     ]
-
     p.crop_types = [
         'c3_annual',
         'c3_perennial',
@@ -386,6 +410,17 @@ def load_data(p):
 
         df = df_land.merge(crop_types_df,how='outer',on='pixel_id')
 
+def visualize_data(p):
+    sparse_df = pd.read_csv(p.aggregated_crop_data_csv_path)
+    match_af = hb.ArrayFrame(p.country_ids_raster_path)
+    zeros_array = np.zeros(match_af.size)
+    full_df = pd.DataFrame(zeros_array)
+    full_df = pd.merge(full_df, sparse_df, left_index=True, right_on='pixel_id', how='outer')
+
+    col_name = 'c3_annual_calories_per_ha'
+    shape = match_af.shape
+    plot_col(full_df, col_name, shape)
+
 main = 'here'
 if __name__ =='__main__':
     p = hb.ProjectFlow('../ipbes_invest_crop_yield_project')
@@ -395,6 +430,7 @@ if __name__ =='__main__':
     create_baseline_regression_data_task = p.add_task(create_baseline_regression_data)
     aggregate_crops_by_type_task = p.add_task(aggregate_crops_by_type)
     load_data_task = p.add_task(load_data)
+    visualize_data_task = p.add_task(visualize_data)
 
 
     setup_dirs_task.run = 1
@@ -402,12 +438,14 @@ if __name__ =='__main__':
     create_baseline_regression_data_task.run = 1
     aggregate_crops_by_type_task.run = 0
     load_data_task.run = 1
+    visualize_data_task.run = 1
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type_task.skip_existing = 1
     load_data_task.skip_existing = 1
+    visualize_data_task.skip_existing = 0
 
     p.execute()
 
