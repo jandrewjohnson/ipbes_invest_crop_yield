@@ -418,7 +418,7 @@ def data_transformation(p,how):
         dfTransformed = pd.DataFrame.copy(df)
 
         if how =='log':
-            dfTransformed.loc = np.log(dfTransformed['calories_per_ha'])
+            dfTransformed['calories_per_ha'] = np.log(dfTransformed['calories_per_ha'])
 
         elif how =='bin':
             dfTransformed = pd.cut(df['calories_per_ha'], bins=5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
