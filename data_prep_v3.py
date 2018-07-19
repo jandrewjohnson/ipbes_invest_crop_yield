@@ -418,7 +418,7 @@ def data_transformation(p,how):
         dfTransformed = pd.DataFrame.copy(df)
 
         if how =='log':
-            dfTransformed.loc = np.log(dfTransformed['calories_per_ha'])
+            dfTransformed['calories_per_ha'] = np.log(dfTransformed['calories_per_ha'])
 
         elif how =='bin':
             dfTransformed = pd.cut(df['calories_per_ha'], bins=5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
@@ -444,15 +444,15 @@ def do_regression(regression,dataframe):
 
     ### Cross validation scores
     r2_scores = cross_val_score(regression, x, y, cv=10,scoring='r2')
-    mse_scores = cross_val_score(regression, x, y, cv=10, scoring='mean_squared_error')
-    mae_scores = cross_val_score(regression, x, y, cv=10, scoring='mean_absolute_error')
+    mse_scores = cross_val_score(regression, x, y, cv=10, scoring='neg_mean_squared_error')
+    mae_scores = cross_val_score(regression, x, y, cv=10, scoring='neg_mean_absolute_error')
 
     print('')
     print('R2 : ', np.mean(r2_scores))
     print('MSE : ', np.mean(mse_scores))
     print('MAE: ', np.mean(mae_scores))
 
-def compare_predictions(regression,dataframe,show_df==True,show_plot==True):
+def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
     x = dataframe.drop(['calories_per_ha'], axis=1)
     y = dataframe['calories_per_ha']
     X_train, X_test, y_train, y_test = train_test_split(x, y)
