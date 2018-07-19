@@ -8,10 +8,9 @@ import hazelbean as hb
 
 L = hb.get_logger('data_prep_v3')
 
-
+# Utilities
 def convert_af_to_1d_df(af):
     array = af.data.flatten()
-    # print('   CALLED convert_af_to_1d_df on array of size' + str(len(array)))
     df = pd.DataFrame(array)
     return df
 
@@ -28,8 +27,6 @@ def concatenate_dfs_horizontally(df_list, column_headers=None):
     return df
 
 
-
-
 def setup_dirs(p):
     L.debug('Making default dirs.')
 
@@ -43,17 +40,20 @@ def setup_dirs(p):
     hb.create_dirs(dirs)
 
 
+def create_land_mask():
+    countries_af = hb.ArrayFrame('../ipbes_invest_crop_yield_project/input/Cartographic/country_ids.tif')
+    df = convert_af_to_1d_df(countries_af)
+    df['land_mask'] = df[0].apply(lambda x: 1 if x > 0 else 0)
+    df = df.drop(0, axis=1)
+    return df
+
+
 def link_base_data(p):
-    p.calories_per_cell_path = os.path.join(p.input_dir, 'calories_per_cell.tif')
-
-
     
     # Cartographic
     p.country_names_path = os.path.join(p.input_dir, 'cartographic/country_names.csv')
     p.country_ids_raster_path = os.path.join(p.input_dir, 'cartographic/country_ids.tif')    #
     p.ha_per_cell_5m_path = os.path.join(p.input_dir, 'cartographic/ha_per_cell_5m.tif')
-
-    # Crop
 
     # Climate
     p.precip_path = os.path.join(p.input_dir, 'climate/worldclim/bio12.bil')
@@ -84,12 +84,7 @@ def link_base_data(p):
     p.minutes_to_market_path = os.path.join(p.input_dir, 'demographic/jrc/minutes_to_market_5m.tif')
     #p.pop_30s_path = os.path.join(p.input_dir, 'demographic/ciesin', 'pop_30s_REDO_FROM_WEB.tif')
 
-def create_land_mask():
-    countries_af = hb.ArrayFrame('../ipbes_invest_crop_yield_project/input/Cartographic/country_ids.tif')
-    df = convert_af_to_1d_df(countries_af)
-    df['land_mask'] = df[0].apply(lambda x: 1 if x > 0 else 0)
-    df = df.drop(0,axis=1)
-    return df
+
 
 def create_baseline_regression_data(p):
     p.baseline_regression_data_path = os.path.join(p.cur_dir, 'baseline_regression_data.csv')
