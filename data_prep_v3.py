@@ -381,6 +381,13 @@ def aggregate_crops_by_type(p):
     # Actually let's do that when we load the datasets in the next script?
     # merge baseline_df and crop_types_df on 'pixel_id' colmn
 
+def load_data(p):
+    crop_types_df = pd.read_csv(p.aggregated_crop_data_csv_path)
+    df_land = pd.read_csv(p.baseline_regression_data_path)
+    print(df_land.shape,crop_types_df.shape)
+
+    df = df_land.merge(crop_types_df,how='outer',on='pixel_id')
+
 main = 'here'
 if __name__ =='__main__':
     p = hb.ProjectFlow('../ipbes_invest_crop_yield_project')
@@ -389,16 +396,20 @@ if __name__ =='__main__':
     link_base_data_task = p.add_task(link_base_data)
     create_baseline_regression_data_task = p.add_task(create_baseline_regression_data)
     aggregate_crops_by_type_task = p.add_task(aggregate_crops_by_type)
+    load_data_task = p.add_task(load_data)
+
 
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
     create_baseline_regression_data_task.run = 1
-    aggregate_crops_by_type.run = 1
+    aggregate_crops_by_type.run = 0 # BUG? re-doing it even when this skip_existing=1 :((
+    load_data_task.run = 1
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type.skip_existing = 1
+    load_data_task.skip_existing = 1
 
     p.execute()
 
