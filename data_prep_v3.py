@@ -392,7 +392,7 @@ def load_data(p,subset=False):
 
             X, X_validation, Y, y_validation = train_test_split(x, y)
 
-            df = X.merge(Y,how='outer',left_index,right_index)
+            df = X.merge(Y,how='outer',left_index=True,right_index=True)
 
         # Remove cal_per_ha per crop type for now
         df = df.drop(labels=['c3_annual_calories_per_ha', 'c3_perennial_calories_per_ha',
@@ -425,7 +425,7 @@ def data_transformation(p,how):
 
         elif how =='logbin':
             dfLogBin['calories_per_cell'] = pd.cut(dfLogBin['calories_per_cell'], 5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
-
+    return dfTransformed
 
 ## regression can be:
 
