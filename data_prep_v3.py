@@ -380,7 +380,6 @@ def load_data(p,subset=False):
     if p.run_this:
         crop_types_df = pd.read_csv(p.aggregated_crop_data_csv_path)
         df_land = pd.read_csv(p.baseline_regression_data_path)
-        print(df_land.shape,crop_types_df.shape)
 
         df = df_land.merge(crop_types_df,how='outer',on='pixel_id')
 
@@ -419,13 +418,13 @@ def data_transformation(p,how):
         dfTransformed = pd.DataFrame.copy(df)
 
         if how =='log':
-        dfTransformed.loc = np.log(dfTransformed['calories_per_ha'])
+            dfTransformed.loc = np.log(dfTransformed['calories_per_ha'])
 
         elif how =='bin':
-        dfTransformed = pd.cut(df['calories_per_ha'], bins=5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
+            dfTransformed = pd.cut(df['calories_per_ha'], bins=5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
 
         elif how =='logbin':
-        dfLogBin['calories_per_cell'] = pd.cut(dfLogBin['calories_per_cell'], 5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
+            dfLogBin['calories_per_cell'] = pd.cut(dfLogBin['calories_per_cell'], 5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
 
 
 ## regression can be:
