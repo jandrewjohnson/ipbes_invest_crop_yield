@@ -403,8 +403,29 @@ def load_data(p,subset=False):
         df = df.drop(labels=['Unnamed: 0', 'country_ids',
                              'ha_per_cell_5m'], axis=1)
 
-        df = df.dropna()
+        # Rename cols
+        df = df.rename(columns={'bio12': 'precip', 'bio1': 'temperature',
+                                'minutes_to_market_5m': 'min_to_market',
+                                'gdp_per_capita_2000_5m': 'gdp_per_capita',
+                                'gdp_2000': 'gdp'})
 
+        # Log some skewed variables
+        df['log_precip'] = df['precip'].apply(lambda x: np.log(x) if x != 0 else 0)
+        df['log_altitude'] = df['altitude'].apply(lambda x: np.log(x) if x != 0 else 0)
+        df['log_gdp'] = df['gdp'].apply(lambda x: np.log(x) if x != 0 else 0)
+        df['log_gdp_per_capita'] = df['gdp_per_capita'].apply(lambda x: np.log(x) if x != 0 else 0)
+        df['log_min_to_market'] = df['min_to_market'].apply(lambda x: np.log(x) if x != 0 else 0)
+
+        # Encode properly NaNs
+        df['slope'] = df['slope'].replace({0: np.nan})  # 143 NaN in 'slope' variable
+        for soil_var in ['workability_index', 'toxicity_index', 'rooting_conditions_index', 'oxygen_availability_index',
+                         'nutrient_retention_index', 'nutrient_availability_index', 'excess_salts_index']:
+            df[soil_var] = df[soil_var].replace({255: np.nan})
+
+        ## TODO figure out how to encode soil variables
+
+        # Drop NaNs rows and cells with no ag
+        df = df.dropna()
         df = df[df['calories_per_ha'] != 0]
 
         df.set_index('pixel_id')
