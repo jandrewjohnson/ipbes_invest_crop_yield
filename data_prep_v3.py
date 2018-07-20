@@ -464,7 +464,7 @@ def load_data(p,subset=True):
 
         ## TODO figure out how to encode soil variables
 
-        df['lon_sin'] = math.sin(math.radians(df['lon']))
+        df['lon_sin'] = np.sin(np.radians(df['lon'])).apply(lambda x: np.sin(np.radians(df['lon'])))
 
         # Drop NaNs rows and cells with no ag
         df = df.dropna()
@@ -573,8 +573,8 @@ if __name__ =='__main__':
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type_task.skip_existing = 1
-    load_data_task.skip_existing = 1
-    visualize_data_task.skip_existing = 1
+    load_data_task.skip_existing = 0
+    visualize_data_task.skip_existing = 0
 
     p.execute()
 
