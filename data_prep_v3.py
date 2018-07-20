@@ -433,6 +433,8 @@ def load_data(p,subset=False):
 
         ## TODO figure out how to encode soil variables
 
+        df_land['lon_sin'] = math.sin(math.radians(df['lon']))
+
         # Drop NaNs rows and cells with no ag
         df = df.dropna()
         df = df[df['calories_per_ha'] != 0]
@@ -512,8 +514,8 @@ def visualize_data(p):
     full_df = pd.DataFrame(zeros_array)
     full_df = pd.merge(full_df, sparse_df, left_index=True, right_on='pixel_id', how='outer')
 
-    plot_col(full_df, 'lat')
-    plot_col(full_df, 'lon')
+    plot_col(full_df, 'lon_sin')
+    # plot_col(full_df, 'lon')
 
 
 
@@ -541,8 +543,8 @@ if __name__ =='__main__':
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type_task.skip_existing = 1
-    load_data_task.skip_existing = 1
-    visualize_data_task.skip_existing = 1
+    load_data_task.skip_existing = 0
+    visualize_data_task.skip_existing = 0
 
     p.execute()
 
