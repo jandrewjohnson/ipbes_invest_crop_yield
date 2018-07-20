@@ -1,4 +1,4 @@
-import os
+import os, math
 from collections import OrderedDict
 
 import hazelbean as hb
@@ -464,7 +464,7 @@ def load_data(p,subset=False):
 
         ## TODO figure out how to encode soil variables
 
-        df_land['lon_sin'] = math.sin(math.radians(df['lon']))
+        df['lon_sin'] = math.sin(math.radians(df['lon']))
 
         # Drop NaNs rows and cells with no ag
         df = df.dropna()
@@ -473,6 +473,11 @@ def load_data(p,subset=False):
         df.set_index('pixel_id')
 
         p.df = df
+
+        match_af = hb.ArrayFrame(p.country_ids_raster_path)
+        zeros_array = np.zeros(match_af.size)
+        p.full_df = pd.DataFrame(zeros_array)
+        p.full_df = pd.merge(p.full_df, p.df, left_index=True, right_on='pixel_id', how='outer')
 
 def data_transformation(p,how):
     df = p.df
@@ -486,8 +491,8 @@ def data_transformation(p,how):
         elif how =='bin':
             dfTransformed = pd.cut(df['calories_per_ha'], bins=5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
 
-        elif how =='logbin':
-            dfLogBin['calories_per_cell'] = pd.cut(dfLogBin['calories_per_cell'], 5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
+        # elif how =='logbin':
+        #     dfLogBin['calories_per_cell'] = pd.cut(dfLogBin['calories_per_cell'], 5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
     return dfTransformed
 
 ## regression can be:
@@ -537,15 +542,9 @@ def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
 
 
 def visualize_data(p):
-    sparse_df = pd.read_csv(p.baseline_regression_data_path)
-    # sparse_df2 = pd.read_csv(p.aggregated_crop_data_csv_path)
-    # sparse_df = pd.merge(sparse_df, sparse_df2, left_on='pixel_id', right_on='pixel_id', how='inner')
-    match_af = hb.ArrayFrame(p.country_ids_raster_path)
-    zeros_array = np.zeros(match_af.size)
-    full_df = pd.DataFrame(zeros_array)
-    full_df = pd.merge(full_df, sparse_df, left_index=True, right_on='pixel_id', how='outer')
 
-    plot_col(full_df, 'lon_sin')
+
+    plot_col(p.df, 'lon_sin')
     # plot_col(full_df, 'lon')
 
 
@@ -566,16 +565,16 @@ if __name__ =='__main__':
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
     create_baseline_regression_data_task.run = 1
-    aggregate_crops_by_type_task.run = 0
+    aggregate_crops_by_type_task.run = 1
     load_data_task.run = 1
     visualize_data_task.run = 1
 
-    setup_dirs_task.skip_existing = 1
-    link_base_data_task.skip_existing = 1
-    create_baseline_regression_data_task.skip_existing = 1
-    aggregate_crops_by_type_task.skip_existing = 1
-    load_data_task.skip_existing = 1
-    visualize_data_task.skip_existing = 1
+    setup_dirs_task.skip_existing = 0
+    link_base_data_task.skip_existing = 0
+    create_baseline_regression_data_task.skip_existing = 0
+    aggregate_crops_by_type_task.skip_existing = 0
+    load_data_task.skip_existing = 0
+    visualize_data_task.skip_existing = 0
 
     p.execute()
 
