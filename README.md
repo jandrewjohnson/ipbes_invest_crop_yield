@@ -1,4 +1,8 @@
-# Workplan 
+### For reference:
+[Paper draft](https://docs.google.com/document/d/1MK59KWyGKPNDi4ZZ8vHMsSxYdsalcxMv1AamdkMARy0/edit?ts=5b51ed41#)
+[gsheet lit review etc](https://docs.google.com/spreadsheets/d/1f-in1bvPsU_y19rAu3XNtgUrr6Tr52wR0mWT5KZ-yQw/edit#gid=361776245)
+
+# Workplan
 
 ### Now
 -	Justin: fix the latitude column 
