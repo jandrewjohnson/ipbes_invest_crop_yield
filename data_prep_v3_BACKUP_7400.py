@@ -460,7 +460,7 @@ def load_data(p,subset=False):
             df[soil_var] = df[soil_var].replace({255: np.nan})
 
         # Lat/Lon
-
+        
 
         ## TODO figure out how to encode soil variables
 
@@ -570,12 +570,20 @@ if __name__ =='__main__':
     load_data_task.run = 1
     visualize_data_task.run = 1
 
+<<<<<<< HEAD
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type_task.skip_existing = 1
-    load_data_task.skip_existing = 1
-    visualize_data_task.skip_existing = 1
+=======
+
+    setup_dirs_task.skip_existing = 0
+    link_base_data_task.skip_existing = 0
+    create_baseline_regression_data_task.skip_existing = 0
+    aggregate_crops_by_type_task.skip_existing = 0
+>>>>>>> 19dce386c5409fc029a181ac3fa6fc9360d0a79d
+    load_data_task.skip_existing = 0
+    visualize_data_task.skip_existing = 0
 
     p.execute()
 

@@ -1,37 +1,19 @@
-import os
+import os, sys, shutil
 from collections import OrderedDict
-
-import hazelbean as hb
 import numpy as np
 import pandas as pd
+import geopandas as gpd
+import math
 
 import matplotlib
 import mpl_toolkits
+from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.basemap import Basemap
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import train_test_split
 
-import matplotlib.pyplot as plt
-
-from sklearn.ensemble import RandomForestClassifier
-import sklearn.metrics
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
-
-from scipy import stats
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-import xgboost as xgb
+import hazelbean as hb
 
 L = hb.get_logger('data_prep_v3')
-
-
 
 # Utilities
 def convert_af_to_1d_df(af):
@@ -90,9 +72,8 @@ def link_base_data(p):
     p.ha_per_cell_5m_path = os.path.join(p.input_dir, 'cartographic/ha_per_cell_5m.tif')
 
     # Climate
-    p.precip_path = os.path.join(p.input_dir, 'Climate/worldclim/bio12.bil')
+    p.precip_path = os.path.join(p.input_dir, 'climate/worldclim/bio12.bil')
     p.temperature_path = os.path.join(p.input_dir, 'climate/worldclim/bio1.bil')
-    p.climate_zones_path = os.path.join(p.input_dir, 'climate/Koeppen-Geiger/climate_zones.tif')
 
     # Topography
     p.slope_path = os.path.join(p.input_dir, "topography/worldclim/slope.tif")
@@ -149,7 +130,6 @@ def create_baseline_regression_data(p):
         p.gdp_gecon,
         p.minutes_to_market_path,
         #p.pop_30s_path,
-        p.climate_zones_path
     ]
 
     if p.run_this:
@@ -176,6 +156,9 @@ def create_baseline_regression_data(p):
 
         df_land['lat'] = ((df['pixel_id_float'] % 4320.)/4320 - .5) * 360.0
         df_land['lon'] = ((df['pixel_id_float'] / 4320.).round()/2160 - .5) * 180.
+
+
+        # TODO Add climate zones
 
         df_land.to_csv(p.baseline_regression_data_path)
 
@@ -435,17 +418,6 @@ def load_data(p,subset=False):
                                 'gdp_per_capita_2000_5m': 'gdp_per_capita',
                                 'gdp_2000': 'gdp'})
 
-        # Encode Climate zones
-        climate_zones_map = {1: 'Af', 2: 'Am', 3: 'Aw',
-                             5: 'BWk', 4: 'BWh', 7: 'BSk', 6: 'BSh',
-                             14: 'Cfa', 15: 'Cfb', 16: 'Cfc', 8: 'Csa',
-                             9: 'Csb', 10: 'Csc', 11: 'Cwa', 12: 'Cwb', 13: 'Cwc',
-                             25: 'Dfa', 26: 'Dfb', 27: 'Dfc', 28: 'Dfd', 17: 'Dsa', 18: 'Dsb', 19: 'Dsc',
-                             20: 'Dsd', 21: 'Dwa', 22: 'Dwb', 23: 'Dwc', 24: 'Dwd',
-                             30: 'EF', 29: 'ET'}
-
-        df['climate_zones'] = df['climate_zones'].map(climate_zones_map)
-
         # Log some skewed variables
         df['log_precip'] = df['precip'].apply(lambda x: np.log(x) if x != 0 else 0)
         df['log_altitude'] = df['altitude'].apply(lambda x: np.log(x) if x != 0 else 0)
@@ -459,12 +431,7 @@ def load_data(p,subset=False):
                          'nutrient_retention_index', 'nutrient_availability_index', 'excess_salts_index']:
             df[soil_var] = df[soil_var].replace({255: np.nan})
 
-        # Lat/Lon
-
-
         ## TODO figure out how to encode soil variables
-
-        df_land['lon_sin'] = math.sin(math.radians(df['lon']))
 
         # Drop NaNs rows and cells with no ag
         df = df.dropna()
@@ -545,8 +512,8 @@ def visualize_data(p):
     full_df = pd.DataFrame(zeros_array)
     full_df = pd.merge(full_df, sparse_df, left_index=True, right_on='pixel_id', how='outer')
 
-    plot_col(full_df, 'lon_sin')
-    # plot_col(full_df, 'lon')
+    plot_col(full_df, 'lat')
+    plot_col(full_df, 'lon')
 
 
 
