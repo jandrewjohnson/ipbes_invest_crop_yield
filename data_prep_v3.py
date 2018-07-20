@@ -405,7 +405,7 @@ def aggregate_crops_by_type(p):
     # Actually let's do that when we load the datasets in the next script?
     # merge baseline_df and crop_types_df on 'pixel_id' colmn
 
-def load_data(p,subset=True):
+def load_data(p,subset=False):
 
     if p.run_this:
         crop_types_df = pd.read_csv(p.aggregated_crop_data_csv_path)
@@ -466,7 +466,8 @@ def load_data(p,subset=True):
         ## TODO figure out how to encode soil variables
 
         # Lat/Lon
-        df_land['lon_sin'] = df['lon'].apply(lambda x:np.sin(np.radians(x)))
+        df['lon_sin'] = df['lon'].apply(lambda x:np.sin(np.radians(x)))
+        df['lat_sin'] = df['lat'].apply(lambda x:np.sin(np.radians(x)))
 
         # Drop NaNs rows and cells with no ag
         df = df.dropna()
@@ -475,6 +476,8 @@ def load_data(p,subset=True):
         df.set_index('pixel_id')
 
         p.df = df
+
+        print(df.columns)
 
         match_af = hb.ArrayFrame(p.country_ids_raster_path)
         zeros_array = np.zeros(match_af.size)
@@ -544,10 +547,8 @@ def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
 
 
 def visualize_data(p):
-
-
-    plot_col(p.df, 'lon_sin')
-    # plot_col(full_df, 'lon')
+    plot_col(p.full_df, 'lon_sin')
+    plot_col(p.full_df, 'lat_sin')
 
 
 
