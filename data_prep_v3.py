@@ -83,6 +83,7 @@ def plot_col(df, col_name, shape=(2160, 4320)):
     im = bm.imshow(np.flipud(m.reshape(shape)))
     bm.drawcoastlines(linewidth=0.15, color='0.1')
     cbar = plt.colorbar(im, orientation='horizontal')
+    plt.title(col_name)
     plt.show()
 
 
@@ -405,7 +406,7 @@ def aggregate_crops_by_type(p):
     # Actually let's do that when we load the datasets in the next script?
     # merge baseline_df and crop_types_df on 'pixel_id' colmn
 
-def load_data(p,subset=False):
+def load_data(p):
 
     if p.run_this:
         crop_types_df = pd.read_csv(p.aggregated_crop_data_csv_path)
@@ -413,10 +414,10 @@ def load_data(p,subset=False):
 
         df = df_land.merge(crop_types_df,how='outer',on='pixel_id')
 
-        if subset==True:
+        if p.subset==True:
             df = df.sample(frac=0.02, replace=False, weights=None, random_state=None, axis=0)
 
-        elif subset==False: #Save validation data
+        elif p.subset==False: #Save validation data
             x = df.drop(['calories_per_ha'], axis=1)
             y = df['calories_per_ha']
 
@@ -424,7 +425,7 @@ def load_data(p,subset=False):
 
             df = X.merge(pd.DataFrame(Y),how='outer',left_index=True,right_index=True)
 
-        elif subset==None:
+        elif p.subset is None: # CAREFUL FOOL ONLY DO THIS FOR PLOTTING BECAUSE LEAKAGE
             pass
 
         # Remove cal_per_ha per crop type for now
@@ -451,7 +452,7 @@ def load_data(p,subset=False):
                              20: 'Dsd', 21: 'Dwa', 22: 'Dwb', 23: 'Dwc', 24: 'Dwd',
                              30: 'EF', 29: 'ET'}
 
-        df['climate_zones'] = df['climate_zones'].map(climate_zones_map)
+        # df['climate_zones'] = df['climate_zones'].map(climate_zones_map)
 
         # Log some skewed variables
         df['log_precip'] = df['precip'].apply(lambda x: np.log(x) if x != 0 else 0)
@@ -473,10 +474,10 @@ def load_data(p,subset=False):
         df['lat_sin'] = df['lat'].apply(lambda x:np.sin(np.radians(x)))
 
         # Drop NaNs rows and cells with no ag
-        df = df.dropna()
+        # df = df.dropna()
         df = df[df['calories_per_ha'] != 0]
 
-        df.set_index('pixel_id')
+        # df.set_index('pixel_id')
 
         p.df = df
 
@@ -550,6 +551,20 @@ def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
 
 
 def visualize_data(p):
+    df_land = pd.read_csv(p.baseline_regression_data_path)
+    match_af = hb.ArrayFrame(p.country_ids_raster_path)
+    zeros_array = np.zeros(match_af.size)
+    zeros_df = pd.DataFrame(zeros_array)
+    agg_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
+
+    plot_col(agg_df, 'climate_zones')
+    plot_col(p.full_df, 'log_gdp_per_capita')
+    plot_col(p.full_df, 'climate_zones')
+    plot_col(p.full_df, 'log_precip')
+    plot_col(p.full_df, 'log_altitude')
+    plot_col(p.full_df, 'log_gdp')
+    plot_col(p.full_df, 'log_min_to_market')
+    plot_col(p.full_df, 'slope')
     plot_col(p.full_df, 'lon_sin')
     plot_col(p.full_df, 'lat_sin')
 
@@ -559,6 +574,8 @@ def visualize_data(p):
 main = 'here'
 if __name__ =='__main__':
     p = hb.ProjectFlow('../ipbes_invest_crop_yield_project')
+
+    p.subset = None
 
     setup_dirs_task = p.add_task(setup_dirs)
     link_base_data_task = p.add_task(link_base_data)
@@ -577,8 +594,8 @@ if __name__ =='__main__':
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
-    create_baseline_regression_data_task.skip_existing = 1
-    aggregate_crops_by_type_task.skip_existing = 1
+    create_baseline_regression_data_task.skip_existing = 0
+    aggregate_crops_by_type_task.skip_existing = 0
     load_data_task.skip_existing = 0
     visualize_data_task.skip_existing = 0
 
