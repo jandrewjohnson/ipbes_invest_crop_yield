@@ -5,13 +5,16 @@ import hazelbean as hb
 import numpy as np
 import pandas as pd
 
+import seaborn as sns
+
 import matplotlib
+import matplotlib.pyplot as plt
 import mpl_toolkits
 from mpl_toolkits.basemap import Basemap
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 
-import matplotlib.pyplot as plt
+
 
 from sklearn.ensemble import RandomForestClassifier
 import sklearn.metrics
@@ -23,9 +26,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 
 from scipy import stats
-
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 # import xgboost as xgb
 
@@ -116,7 +116,7 @@ def link_base_data(p):
     p.gdp_2000_path = os.path.join(p.input_dir, 'demographic/worldbank/gdp_2000.tif')
     p.gdp_gecon = os.path.join(p.input_dir, 'demographic/nordhaus/gdp_per_capita_2000_5m.tif')
     p.minutes_to_market_path = os.path.join(p.input_dir, 'demographic/jrc/minutes_to_market_5m.tif')
-    #p.pop_30s_path = os.path.join(p.input_dir, 'demographic/ciesin', 'pop_30s_REDO_FROM_WEB.tif')
+    p.pop_path = os.path.join(p.input_dir, 'demographic/ciesin', 'gpw_population.tif')
 
 
 
@@ -148,7 +148,7 @@ def create_baseline_regression_data(p):
         p.gdp_2000_path,
         p.gdp_gecon,
         p.minutes_to_market_path,
-        #p.pop_30s_path,
+        p.pop_path,
         p.climate_zones_path
     ]
 
@@ -401,7 +401,7 @@ def aggregate_crops_by_type(p):
     # Actually let's do that when we load the datasets in the next script?
     # merge baseline_df and crop_types_df on 'pixel_id' colmn
 
-def load_data(p,subset=False):
+def load_data(p,subset=True):
 
     if p.run_this:
         crop_types_df = pd.read_csv(p.aggregated_crop_data_csv_path)
@@ -418,7 +418,7 @@ def load_data(p,subset=False):
 
             X, X_validation, Y, y_validation = train_test_split(x, y)
 
-            df = X.merge(Y,how='outer',left_index=True,right_index=True)
+            df = X.merge(pd.DataFrame(Y),how='outer',left_index=True,right_index=True)
 
         # Remove cal_per_ha per crop type for now
         df = df.drop(labels=['c3_annual_calories_per_ha', 'c3_perennial_calories_per_ha',
@@ -569,12 +569,12 @@ if __name__ =='__main__':
     load_data_task.run = 1
     visualize_data_task.run = 1
 
-    setup_dirs_task.skip_existing = 0
-    link_base_data_task.skip_existing = 0
-    create_baseline_regression_data_task.skip_existing = 0
-    aggregate_crops_by_type_task.skip_existing = 0
-    load_data_task.skip_existing = 0
-    visualize_data_task.skip_existing = 0
+    setup_dirs_task.skip_existing = 1
+    link_base_data_task.skip_existing = 1
+    create_baseline_regression_data_task.skip_existing = 1
+    aggregate_crops_by_type_task.skip_existing = 1
+    load_data_task.skip_existing = 1
+    visualize_data_task.skip_existing = 1
 
     p.execute()
 
