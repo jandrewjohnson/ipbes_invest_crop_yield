@@ -5,6 +5,9 @@ import hazelbean as hb
 import numpy as np
 import pandas as pd
 
+import math
+from scipy import stats
+
 import seaborn as sns
 
 import matplotlib
@@ -14,6 +17,7 @@ from mpl_toolkits.basemap import Basemap
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
 
+from sklearn.preprocessing import PolynomialFeatures
 
 
 from sklearn.ensemble import RandomForestClassifier
@@ -459,12 +463,10 @@ def load_data(p,subset=True):
                          'nutrient_retention_index', 'nutrient_availability_index', 'excess_salts_index']:
             df[soil_var] = df[soil_var].replace({255: np.nan})
 
-        # Lat/Lon
-
-
         ## TODO figure out how to encode soil variables
 
-        df_land['lon_sin'] = math.sin(math.radians(df['lon']))
+        # Lat/Lon
+        df_land['lon_sin'] = df['lon'].apply(lambda x:np.sin(np.radians(x)))
 
         # Drop NaNs rows and cells with no ag
         df = df.dropna()
