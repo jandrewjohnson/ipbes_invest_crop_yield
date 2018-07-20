@@ -29,6 +29,9 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import Ridge
+
 from scipy import stats
 
 # import xgboost as xgb
