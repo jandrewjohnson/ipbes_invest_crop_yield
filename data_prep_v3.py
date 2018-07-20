@@ -424,6 +424,9 @@ def load_data(p,subset=False):
 
             df = X.merge(pd.DataFrame(Y),how='outer',left_index=True,right_index=True)
 
+        elif subset==None:
+            pass
+
         # Remove cal_per_ha per crop type for now
         df = df.drop(labels=['c3_annual_calories_per_ha', 'c3_perennial_calories_per_ha',
                              'c4_annual_calories_per_ha', 'c4_perennial_calories_per_ha',
