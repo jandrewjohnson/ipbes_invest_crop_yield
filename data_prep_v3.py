@@ -3,6 +3,13 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+import math
+
+import matplotlib
+import mpl_toolkits
+from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.basemap import Basemap
 
 import hazelbean as hb
 
@@ -46,6 +53,15 @@ def create_land_mask():
     df['land_mask'] = df[0].apply(lambda x: 1 if x > 0 else 0)
     df = df.drop(0, axis=1)
     return df
+
+
+def plot_col(df, col_name, shape=(2160, 4320)):
+    m = np.array(df[col_name])
+    bm = Basemap()
+    im = bm.imshow(np.flipud(m.reshape(shape)))
+    bm.drawcoastlines(linewidth=0.15, color='0.1')
+    cbar = plt.colorbar(im, orientation='horizontal')
+    plt.show()
 
 
 def link_base_data(p):
@@ -119,20 +135,6 @@ def create_baseline_regression_data(p):
     if p.run_this:
         match_af = hb.ArrayFrame(paths_to_add[0])
         for path in paths_to_add:
-            print('path', path)
-            print()
-            # if 'altitude' in path or 'slope' in path and 0:
-            #     name = hb.explode_path(path)['file_root']
-            #     af = hb.ArrayFrame(path)
-            #     modified_array = np.where(af.data < 0, 0, af.data)
-            #     tmp1 = hb.temp(remove_at_exit=True)
-            #     hb.save_array_as_geotiff(modified_array, tmp1, p.precip_path, projection_override=match_af.projection)
-            #     modified_af = hb.ArrayFrame(tmp1)
-            #     af_names_list.append(name)
-            #     df = convert_af_to_1d_df(modified_af)
-            #     dfs_list.append(df)
-            # else:
-
             name = hb.explode_path(path)['file_root']
             af = hb.ArrayFrame(path)
             af_names_list.append(name)
@@ -145,11 +147,18 @@ def create_baseline_regression_data(p):
 
         # Get rid of the oceans cells
         df['pixel_id'] = df.index
+        df['pixel_id_float'] = df['pixel_id'].astype('float')
         land_mask = create_land_mask()
         df = df.merge(land_mask, right_index=True, left_on='pixel_id')
         df_land = df[df['land_mask']==1]
 
         df_land = df_land.dropna()
+
+        df_land['lat'] = ((df['pixel_id_float'] % 4320.)/4320 - .5) * 360.0
+        df_land['lon'] = ((df['pixel_id_float'] / 4320.).round()/2160 - .5) * 180.
+
+
+        # TODO Add climate zones
 
         df_land.to_csv(p.baseline_regression_data_path)
 
@@ -472,6 +481,22 @@ def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
         ax.plot(ax.get_xlim(), ax.get_xlim(), ls="--", c=".3")
         plt.show()
 
+
+def visualize_data(p):
+    sparse_df = pd.read_csv(p.baseline_regression_data_path)
+    # sparse_df2 = pd.read_csv(p.aggregated_crop_data_csv_path)
+    # sparse_df = pd.merge(sparse_df, sparse_df2, left_on='pixel_id', right_on='pixel_id', how='inner')
+    match_af = hb.ArrayFrame(p.country_ids_raster_path)
+    zeros_array = np.zeros(match_af.size)
+    full_df = pd.DataFrame(zeros_array)
+    full_df = pd.merge(full_df, sparse_df, left_index=True, right_on='pixel_id', how='outer')
+
+    plot_col(full_df, 'lat')
+    plot_col(full_df, 'lon')
+
+
+
+
 main = 'here'
 if __name__ =='__main__':
     p = hb.ProjectFlow('../ipbes_invest_crop_yield_project')
@@ -481,6 +506,7 @@ if __name__ =='__main__':
     create_baseline_regression_data_task = p.add_task(create_baseline_regression_data)
     aggregate_crops_by_type_task = p.add_task(aggregate_crops_by_type)
     load_data_task = p.add_task(load_data)
+    visualize_data_task = p.add_task(visualize_data)
 
 
     setup_dirs_task.run = 1
@@ -488,12 +514,14 @@ if __name__ =='__main__':
     create_baseline_regression_data_task.run = 1
     aggregate_crops_by_type_task.run = 0
     load_data_task.run = 1
+    visualize_data_task.run = 1
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type_task.skip_existing = 1
     load_data_task.skip_existing = 1
+    visualize_data_task.skip_existing = 1
 
     p.execute()
 
