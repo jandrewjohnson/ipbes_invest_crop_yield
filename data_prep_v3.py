@@ -484,8 +484,6 @@ def load_data(p):
 
         p.df = df
 
-        print(df.columns)
-
         match_af = hb.ArrayFrame(p.country_ids_raster_path)
         zeros_array = np.zeros(match_af.size)
         p.full_df = pd.DataFrame(zeros_array)
@@ -560,7 +558,7 @@ def visualize_data(p):
     zeros_df = pd.DataFrame(zeros_array)
     agg_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
 
-    plot_col(agg_df, 'climate_zones')
+    plot_col(agg_df, 'lat')
     plot_col(p.full_df, 'log_gdp_per_capita')
     plot_col(p.full_df, 'climate_zones')
     plot_col(p.full_df, 'log_precip')
@@ -597,8 +595,8 @@ if __name__ =='__main__':
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
-    create_baseline_regression_data_task.skip_existing = 0
-    aggregate_crops_by_type_task.skip_existing = 0
+    create_baseline_regression_data_task.skip_existing = 1
+    aggregate_crops_by_type_task.skip_existing = 1
     load_data_task.skip_existing = 0
     visualize_data_task.skip_existing = 0
 
