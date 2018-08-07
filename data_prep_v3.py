@@ -22,12 +22,14 @@ from sklearn.preprocessing import PolynomialFeatures
 
 from sklearn.ensemble import RandomForestClassifier
 import sklearn.metrics
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neighbors import KNeighborsRegressor
+
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
+
+from sklearn.feature_selection import RFE
+from sklearn.preprocessing import PolynomialFeatures
+
 
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
@@ -98,8 +100,31 @@ def link_base_data(p):
     p.ha_per_cell_5m_path = os.path.join(p.input_dir, 'cartographic/ha_per_cell_5m.tif')
 
     # Climate
-    p.precip_path = os.path.join(p.input_dir, 'Climate/worldclim/bio12.bil')
+    #   Worclim v1
+    #p.precip_path = os.path.join(p.input_dir, 'Climate/worldclim/bio12.bil')
     p.temperature_path = os.path.join(p.input_dir, 'climate/worldclim/bio1.bil')
+    #   Worldclim v2
+    p.temp_avg_path = os.path.join(p.input_dir, 'Climate/worldclim2/temp_avg.tif')                   #wc2.0_bio_5m_01
+    p.temp_diurnalrange_path = os.path.join(p.input_dir, 'Climate/worldclim2/temp_diurnalrange.tif')   #wc2.0_bio_5m_02
+    p.temp_isothermality_path = os.path.join(p.input_dir, 'Climate/worldclim2/temp_isothermality.tif')  #wc2.0_bio_5m_03
+    p.temp_seasonality_path = os.path.join(p.input_dir, 'Climate/worldclim2/temp_seasonality.tif')    #wc2.0_bio_5m_04
+    p.temp_annualmax_path = os.path.join(p.input_dir, 'Climate/worldclim2/temp_annualmax.tif')      #wc2.0_bio_5m_05
+    p.temp_annualmin_path = os.path.join(p.input_dir, 'Climate/worldclim2/temp_annualmin.tif')      #...
+    p.temp_annualrange_path = os.path.join(p.input_dir, 'Climate/worldclim2/temp_annualrange.tif')
+    #p.temp_wettestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_08.tif')
+    #p.temp_dryestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_09.tif')
+    #p.temp_warmestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_10.tif')
+    #p.temp_coldestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_11.tif')
+    p.precip_path = os.path.join(p.input_dir, 'Climate/worldclim2/precip.tif')
+    p.precip_wet_mth_path = os.path.join(p.input_dir, 'Climate/worldclim2/precip_wet_mth.tif')
+    p.precip_dry_mth_path = os.path.join(p.input_dir, 'Climate/worldclim2/precip_dry_mth.tif')
+    p.precip_seasonality_path = os.path.join(p.input_dir, 'Climate/worldclim2/precip_seasonality.tif')
+    #p.precip_wettestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_16.tif')
+    #p.precip_dryestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_17.tif')
+    #p.precip_warmestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_18.tif')
+    #p.precip_coldestq_path = os.path.join(p.input_dir, 'Climate/worldclim2/wc2.0_bio_5m_19.tif')
+
+    #   Climate zones
     p.climate_zones_path = os.path.join(p.input_dir, 'climate/Koeppen-Geiger/climate_zones.tif')
 
     # Topography
@@ -137,8 +162,8 @@ def create_baseline_regression_data(p):
         # p.country_names_path,
         p.country_ids_raster_path,
         p.ha_per_cell_5m_path,
-        p.precip_path,
-        p.temperature_path,
+        #p.precip_path,
+        #p.temperature_path,
         p.slope_path,
         p.altitude_path,
         p.workability_index_path,
@@ -157,7 +182,27 @@ def create_baseline_regression_data(p):
         p.gdp_gecon,
         p.minutes_to_market_path,
         p.pop_path,
-        p.climate_zones_path
+        p.climate_zones_path,
+
+        p.temp_avg_path,
+        p.temp_diurnalrange_path,
+        p.temp_isothermality_path,
+        p.temp_seasonality_path,
+        p.temp_annualmax_path,
+        p.temp_annualmin_path,
+        p.temp_annualrange_path,
+        #p.temp_wettestq_path,
+        #p.temp_dryestq_path,
+        #p.temp_warmestq_path,
+        #p.temp_coldestq_path,
+        p.precip_path,
+        p.precip_wet_mth_path,
+        p.precip_dry_mth_path,
+        p.precip_seasonality_path,
+        # p.precip_wettestq_path,
+        # p.precip_dryestq_path,
+        # p.precip_warmestq_path,
+        # p.precip_coldestq_path
     ]
 
     if p.run_this:
@@ -446,7 +491,7 @@ def load_data(p):
                                 'gdp_per_capita_2000_5m': 'gdp_per_capita',
                                 'gdp_2000': 'gdp'})
 
-        # Encode Climate zones
+        # Encode Climate zones as Strings
         climate_zones_map = {1: 'Af', 2: 'Am', 3: 'Aw',
                              5: 'BWk', 4: 'BWh', 7: 'BSk', 6: 'BSh',
                              14: 'Cfa', 15: 'Cfb', 16: 'Cfc', 8: 'Csa',
@@ -455,32 +500,43 @@ def load_data(p):
                              20: 'Dsd', 21: 'Dwa', 22: 'Dwb', 23: 'Dwc', 24: 'Dwd',
                              30: 'EF', 29: 'ET'}
 
-        # df['climate_zones'] = df['climate_zones'].map(climate_zones_map)
+        df['climate_zones'] = df['climate_zones'].map(climate_zones_map) # TODO Why was it commented?
+
+        # Encode climate zones as dummies
+        climate_dummies_df = pd.get_dummies(df['climate_zones'])
+        for col in climate_dummies_df.columns:
+            climate_dummies_df = climate_dummies_df.rename({col: str('climatezone_' + col)}, axis=1)
+
+        df = df.merge(climate_dummies_df, right_index=True, left_index=True)
+        df = df.drop('climate_zones', axis=1)
 
         # Log some skewed variables
-        df['log_precip'] = df['precip'].apply(lambda x: np.log(x) if x != 0 else 0)
-        df['log_altitude'] = df['altitude'].apply(lambda x: np.log(x) if x != 0 else 0)
-        df['log_gdp'] = df['gdp'].apply(lambda x: np.log(x) if x != 0 else 0)
-        df['log_gdp_per_capita'] = df['gdp_per_capita'].apply(lambda x: np.log(x) if x != 0 else 0)
-        df['log_min_to_market'] = df['min_to_market'].apply(lambda x: np.log(x) if x != 0 else 0)
+        df['calories_per_ha'] = df['calories_per_ha'].apply(lambda x: np.log(x) if x != 0 else 0)
 
-        # Encode properly NaNs
-        df['slope'] = df['slope'].replace({0: np.nan})  # 143 NaN in 'slope' variable
-        for soil_var in ['workability_index', 'toxicity_index', 'rooting_conditions_index', 'oxygen_availability_index',
-                         'nutrient_retention_index', 'nutrient_availability_index', 'excess_salts_index']:
-            df[soil_var] = df[soil_var].replace({255: np.nan})
+        for col in ['gdp_per_capita','altitude', 'min_to_market', 'gpw_population']:
+            df[str('log_'+col)] = df[col].apply(lambda x: np.log(x) if x != 0 else 0)
 
-        ## TODO figure out how to encode soil variables
+        # TODO figure out how to encode soil variables better?
+
+        # Add precip_annualrange
+        df['precip_annualrange'] = df['precip_wet_mth'] - df['precip_dry_mth']
 
         # Lat/Lon
         df['lon_sin'] = df['lon'].apply(lambda x:np.sin(np.radians(x)))
         df['lat_sin'] = df['lat'].apply(lambda x:np.sin(np.radians(x)))
 
+        # Encode properly NaNs
+        df['slope'] = df['slope'].replace({0: np.nan})  # 143 NaN in 'slope' variable
+        for soil_var in ['workability_index', 'toxicity_index', 'rooting_conditions_index',
+                         'oxygen_availability_index', 'protected_areas_index',
+                         'nutrient_retention_index', 'nutrient_availability_index', 'excess_salts_index']:
+            df[soil_var] = df[soil_var].replace({255: np.nan})
+
         # Drop NaNs rows and cells with no ag
-        # df = df.dropna()
+        df = df.dropna()
         df = df[df['calories_per_ha'] != 0]
 
-        # df.set_index('pixel_id')
+        # df.set_index('pixel_id') ## TODO Why is this commented out ?
 
         p.df = df
 
@@ -512,6 +568,10 @@ def data_transformation(p,how):
 ##                           colsample_bytree=1, max_depth=7)
 ## ...
 
+def create_results_table(p):
+    p.results = pd.DataFrame(columns=['Model', 'num_features', 'Features', 'MSE', 'R2'])
+
+
 def do_regression(regression,dataframe):
     ##Must make dummies for categorical variable climate_zone
     # dataframe = pd.get_dummies(dataframe, columns=['climate_zone'])
@@ -525,10 +585,68 @@ def do_regression(regression,dataframe):
     mse_scores = cross_val_score(regression, x, y, cv=10, scoring='neg_mean_squared_error')
     mae_scores = cross_val_score(regression, x, y, cv=10, scoring='neg_mean_absolute_error')
 
-    print('')
-    print('R2 : ', np.mean(r2_scores))
-    print('MSE : ', np.mean(mse_scores))
-    print('MAE: ', np.mean(mae_scores))
+    return [np.mean(r2_scores), np.mean(mse_scores), np.mean(mae_scores)]
+
+
+def do_regression_RFE_features(p, model, regression, dataframe,min_features, max_features):
+    for num_features in range(min_features,  max_features):
+        L.info('   with ' + str(num_features) + ' features ...')
+
+        ## RFE - Features selection
+        selector = RFE(regression, num_features, step=1)
+
+        x = dataframe.drop(['calories_per_ha'], axis=1)  ## TODO climate_zones encode One Hot Encoder
+        y = dataframe['calories_per_ha']
+        X, X_test, Y, Y_test = train_test_split(x, y)
+
+        X_RFE = selector.fit_transform(X, Y)
+
+        features_selected = [X.columns[feature_pos] for feature_pos in selector.get_support(indices=True)]
+        features_selected.append('calories_per_ha')
+        scores = do_regression(regression, dataframe[features_selected])
+        R2_score = scores[0]
+        MSE_score = scores[1]
+        MAE_score = scores[2]
+
+        p.results = p.results.append({'Model': model,
+                                  'num_features': num_features,
+                                  'Features': features_selected,
+                                  'R2': R2_score,
+                                  'MSE': MSE_score},
+                                 ignore_index=True)
+
+        L.info('   ... done')
+
+
+# def run_polynomial_regressions(p):
+#     regression = LinearRegression()
+#
+#     for interaction_terms in [False, True]:
+#         for degree in [2, 3]:
+#             L.info('Running Polynomial of degree ' + str(degree) + interaction_terms * (' with interaction terms'))
+#
+#             model = str('Poly deg' + str(degree) + interaction_terms * ' w/ interact')
+#
+#             dataframe = make_polynomial(df)
+#
+#             do_regression_RFE_features(model,regression,dataframe,5,6)
+#
+#             ## Add here do_regression_all_features TODO fct do_regression_all_feature
+#             ## Add here do_regression_my_subset TODO fct  do_regression_features_subset
+
+def run_linear_regressions(p):
+
+    regression = LinearRegression()
+    model = 'Linear Reg'
+
+    L.info('Running Linear Regression')
+
+    do_regression_RFE_features(p,model, regression, p.df, 5, 6)
+
+def run_tree_based_models(p):
+    print('yo')
+
+
 
 def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
     x = dataframe.drop(['calories_per_ha'], axis=1)
@@ -551,23 +669,23 @@ def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
         plt.show()
 
 
-def visualize_data(p):
-    df_land = pd.read_csv(p.baseline_regression_data_path)
-    match_af = hb.ArrayFrame(p.country_ids_raster_path)
-    zeros_array = np.zeros(match_af.size)
-    zeros_df = pd.DataFrame(zeros_array)
-    agg_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
-
-    plot_col(agg_df, 'lat')
-    plot_col(p.full_df, 'log_gdp_per_capita')
-    plot_col(p.full_df, 'climate_zones')
-    plot_col(p.full_df, 'log_precip')
-    plot_col(p.full_df, 'log_altitude')
-    plot_col(p.full_df, 'log_gdp')
-    plot_col(p.full_df, 'log_min_to_market')
-    plot_col(p.full_df, 'slope')
-    plot_col(p.full_df, 'lon_sin')
-    plot_col(p.full_df, 'lat_sin')
+# def visualize_data(p):
+#     df_land = pd.read_csv(p.baseline_regression_data_path)
+#     match_af = hb.ArrayFrame(p.country_ids_raster_path)
+#     zeros_array = np.zeros(match_af.size)
+#     zeros_df = pd.DataFrame(zeros_array)
+#     agg_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
+#
+#     plot_col(agg_df, 'lat')
+#     plot_col(p.full_df, 'log_gdp_per_capita')
+#     plot_col(p.full_df, 'climate_zones')
+#     plot_col(p.full_df, 'log_precip')
+#     plot_col(p.full_df, 'log_altitude')
+#     plot_col(p.full_df, 'log_gdp')
+#     plot_col(p.full_df, 'log_min_to_market')
+#     plot_col(p.full_df, 'slope')
+#     plot_col(p.full_df, 'lon_sin')
+#     plot_col(p.full_df, 'lat_sin')
 
 
 
@@ -576,29 +694,38 @@ main = 'here'
 if __name__ =='__main__':
     p = hb.ProjectFlow('../ipbes_invest_crop_yield_project')
 
-    p.subset = None
+    p.subset = True # True for subsetting data, None ONLY FOR PLOTTING BECAUSE LEAKAGE
 
     setup_dirs_task = p.add_task(setup_dirs)
+
     link_base_data_task = p.add_task(link_base_data)
     create_baseline_regression_data_task = p.add_task(create_baseline_regression_data)
     aggregate_crops_by_type_task = p.add_task(aggregate_crops_by_type)
     load_data_task = p.add_task(load_data)
-    visualize_data_task = p.add_task(visualize_data)
-
+    #visualize_data_task = p.add_task(visualize_data)
+    create_results_table_task = p.add_task(create_results_table)
+    run_linear_regressions_task = p.add_task(run_linear_regressions)
+    #run_polynomial_regressions_task = p.add_task(run_polynomial_regressions)
 
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
     create_baseline_regression_data_task.run = 1
     aggregate_crops_by_type_task.run = 1
     load_data_task.run = 1
-    visualize_data_task.run = 1
+    #visualize_data_task.run = 0
+    create_results_table_task.run = 1
+    run_linear_regressions_task.run=1
+    #run_polynomial_regressions_task.run = 0
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type_task.skip_existing = 1
-    load_data_task.skip_existing = 0
-    visualize_data_task.skip_existing = 0
+    load_data_task.skip_existing = 0 # TODO: if skipped, p.df doesn't exist -- I have to re-load everytime :( what would be a good solution? Justin?
+    #visualize_data_task.skip_existing = 1
+    create_results_table_task.skip_existing = 1 # =0 to reset the results table
+    run_linear_regressions_task.skip_existing = 1
+    #run_polynomial_regressions_task.skip_existing = 1
 
     p.execute()
 
