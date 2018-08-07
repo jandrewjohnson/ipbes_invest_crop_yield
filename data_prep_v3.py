@@ -618,21 +618,51 @@ def do_regression_RFE_features(p, model, regression, dataframe,min_features, max
         L.info('   ... done')
 
 
-# def run_polynomial_regressions(p):
-#     regression = LinearRegression()
-#
-#     for interaction_terms in [False, True]:
-#         for degree in [2, 3]:
-#             L.info('Running Polynomial of degree ' + str(degree) + interaction_terms * (' with interaction terms'))
-#
-#             model = str('Poly deg' + str(degree) + interaction_terms * ' w/ interact')
-#
-#             dataframe = make_polynomial(df)
-#
-#             do_regression_RFE_features(model,regression,dataframe,5,6)
-#
-#             ## Add here do_regression_all_features TODO fct do_regression_all_feature
-#             ## Add here do_regression_my_subset TODO fct  do_regression_features_subset
+def make_polynomial(df, degree=2, interaction_terms=True):
+    # '''Returns a new dataFrame with added polynomial terms degree >= 2'''
+
+    if interaction_terms == False:
+        x = df.drop(['calories_per_ha'], axis=1)
+        y = df['calories_per_ha']
+
+        for deg in range(2, degree + 1):
+            for col in x.columns:
+                x[str(col + '^' + str(deg))] = x[col].apply(lambda x: x ** deg)
+
+        Poly_df = x.merge(pd.DataFrame(y), right_index=True, left_index=True)
+
+    if interaction_terms == True:
+        x = df.drop(['calories_per_ha'], axis=1)
+        y = df['calories_per_ha'].reset_index()
+
+        poly = PolynomialFeatures(degree=degree, include_bias=False)
+        X2 = poly.fit_transform(x)
+
+        Poly_df = pd.DataFrame(data=np.concatenate((y.as_matrix(), X2), axis=1),
+                               columns=['pixel_id', 'calories_per_ha'] +
+                                       poly.get_feature_names(
+                                           (df.drop(['calories_per_ha'], axis=1)).columns))
+
+        Poly_df = Poly_df.set_index('pixel_id')
+
+    return Poly_df
+
+
+def run_polynomial_regressions(p):
+    regression = LinearRegression()
+
+    for interaction_terms in [False, True]:
+        for degree in [2, 3]:
+            L.info('Running Polynomial of degree ' + str(degree) + interaction_terms * (' with interaction terms'))
+
+            model = str('Poly deg' + str(degree) + interaction_terms * ' w/ interact')
+
+            dataframe = make_polynomial(p.df,2,interaction_terms=False)
+
+            do_regression_RFE_features(p,model,regression,dataframe,5,6)
+
+            ## Add here do_regression_all_features TODO fct do_regression_all_feature
+            ## Add here do_regression_my_subset TODO fct  do_regression_features_subset
 
 def run_linear_regressions(p):
 
@@ -705,7 +735,7 @@ if __name__ =='__main__':
     #visualize_data_task = p.add_task(visualize_data)
     create_results_table_task = p.add_task(create_results_table)
     run_linear_regressions_task = p.add_task(run_linear_regressions)
-    #run_polynomial_regressions_task = p.add_task(run_polynomial_regressions)
+    run_polynomial_regressions_task = p.add_task(run_polynomial_regressions)
 
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
@@ -715,7 +745,7 @@ if __name__ =='__main__':
     #visualize_data_task.run = 0
     create_results_table_task.run = 1
     run_linear_regressions_task.run=1
-    #run_polynomial_regressions_task.run = 0
+    run_polynomial_regressions_task.run = 0
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
@@ -725,7 +755,7 @@ if __name__ =='__main__':
     #visualize_data_task.skip_existing = 1
     create_results_table_task.skip_existing = 1 # =0 to reset the results table
     run_linear_regressions_task.skip_existing = 1
-    #run_polynomial_regressions_task.skip_existing = 1
+    run_polynomial_regressions_task.skip_existing = 1
 
     p.execute()
 
