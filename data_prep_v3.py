@@ -36,7 +36,7 @@ from sklearn.linear_model import Ridge
 
 from scipy import stats
 
-# import xgboost as xgb
+import xgboost as xgb
 
 L = hb.get_logger('data_prep_v3')
 
@@ -561,14 +561,8 @@ def data_transformation(p,how):
         #     dfLogBin['calories_per_cell'] = pd.cut(dfLogBin['calories_per_cell'], 5, labels=[1, 2, 3, 4, 5]) ##Not sure about this -- to do Charlie
     return dfTransformed
 
-## regression can be:
-
-## lr = LinearRegression()
-## xgbreg = xgb.XGBRegressor(n_estimators=100, learning_rate=0.08, gamma=0, subsample=0.75,
-##                           colsample_bytree=1, max_depth=7)
-## ...
-
 def create_results_table(p):
+    #if p.run_this:
     p.results = pd.DataFrame(columns=['Model', 'num_features', 'Features', 'MSE', 'R2'])
 
 
@@ -649,32 +643,39 @@ def make_polynomial(df, degree=2, interaction_terms=True):
 
 
 def run_polynomial_regressions(p):
-    regression = LinearRegression()
+    if p.run_this:
+        regression = LinearRegression()
 
-    for interaction_terms in [False, True]:
-        for degree in [2, 3]:
-            L.info('Running Polynomial of degree ' + str(degree) + interaction_terms * (' with interaction terms'))
+        for interaction_terms in [False, True]:
+            for degree in [2, 3]:
+                L.info('Running Polynomial of degree ' + str(degree) + interaction_terms * (' with interaction terms'))
 
-            model = str('Poly deg' + str(degree) + interaction_terms * ' w/ interact')
+                model = str('Poly deg' + str(degree) + interaction_terms * ' w/ interact')
 
-            dataframe = make_polynomial(p.df,2,interaction_terms=False)
+                dataframe = make_polynomial(p.df,2,interaction_terms=False)
 
-            do_regression_RFE_features(p,model,regression,dataframe,5,6)
+                do_regression_RFE_features(p,model,regression,dataframe,5,6)
 
-            ## Add here do_regression_all_features TODO fct do_regression_all_feature
-            ## Add here do_regression_my_subset TODO fct  do_regression_features_subset
+                ## Add here do_regression_all_features TODO fct do_regression_all_feature
+                ## Add here do_regression_my_subset TODO fct  do_regression_features_subset
 
 def run_linear_regressions(p):
+    if p.run_this:
+        regression = LinearRegression()
+        model = 'Linear Reg'
 
-    regression = LinearRegression()
-    model = 'Linear Reg'
+        L.info('Running Linear Regression')
 
-    L.info('Running Linear Regression')
-
-    do_regression_RFE_features(p,model, regression, p.df, 5, 6)
+        do_regression_RFE_features(p,model, regression, p.df, 5, 6)
 
 def run_tree_based_models(p):
-    print('yo')
+    if p.run_this:
+        regression = xgb.XGBRegressor()
+        model = 'XGBoost (default parameters)'
+
+        L.info('Running XGBoost (default params)')
+
+        do_regression_RFE_features(p, model, regression, p.df, 5, 6)
 
 
 
@@ -736,6 +737,7 @@ if __name__ =='__main__':
     create_results_table_task = p.add_task(create_results_table)
     run_linear_regressions_task = p.add_task(run_linear_regressions)
     run_polynomial_regressions_task = p.add_task(run_polynomial_regressions)
+    run_tree_based_models_task = p.add_task(run_tree_based_models)
 
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
@@ -744,8 +746,9 @@ if __name__ =='__main__':
     load_data_task.run = 1
     #visualize_data_task.run = 0
     create_results_table_task.run = 1
-    run_linear_regressions_task.run=1
+    run_linear_regressions_task.run = 1
     run_polynomial_regressions_task.run = 0
+    run_tree_based_models_task.run = 1
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
@@ -753,9 +756,9 @@ if __name__ =='__main__':
     aggregate_crops_by_type_task.skip_existing = 1
     load_data_task.skip_existing = 0 # TODO: if skipped, p.df doesn't exist -- I have to re-load everytime :( what would be a good solution? Justin?
     #visualize_data_task.skip_existing = 1
-    create_results_table_task.skip_existing = 1 # =0 to reset the results table
-    run_linear_regressions_task.skip_existing = 1
-    run_polynomial_regressions_task.skip_existing = 1
+    create_results_table_task.skip_existing = 1 # = 0 to reset the results table
+
+
 
     p.execute()
 
