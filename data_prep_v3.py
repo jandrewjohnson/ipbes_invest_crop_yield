@@ -700,23 +700,23 @@ def compare_predictions(regression,dataframe,show_df=True,show_plot=True):
         plt.show()
 
 
-# def visualize_data(p):
-#     df_land = pd.read_csv(p.baseline_regression_data_path)
-#     match_af = hb.ArrayFrame(p.country_ids_raster_path)
-#     zeros_array = np.zeros(match_af.size)
-#     zeros_df = pd.DataFrame(zeros_array)
-#     agg_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
-#
-#     plot_col(agg_df, 'lat')
-#     plot_col(p.full_df, 'log_gdp_per_capita')
-#     plot_col(p.full_df, 'climate_zones')
-#     plot_col(p.full_df, 'log_precip')
-#     plot_col(p.full_df, 'log_altitude')
-#     plot_col(p.full_df, 'log_gdp')
-#     plot_col(p.full_df, 'log_min_to_market')
-#     plot_col(p.full_df, 'slope')
-#     plot_col(p.full_df, 'lon_sin')
-#     plot_col(p.full_df, 'lat_sin')
+def visualize_data(p):
+    df_land = pd.read_csv(p.baseline_regression_data_path) ## TODO: If we load data, this reads csv twive (time consuming) optimize?
+    match_af = hb.ArrayFrame(p.country_ids_raster_path)
+    zeros_array = np.zeros(match_af.size)
+    zeros_df = pd.DataFrame(zeros_array)
+    agg_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
+
+    plot_col(agg_df, 'lat')
+    # plot_col(p.full_df, 'log_gdp_per_capita')
+    # plot_col(p.full_df, 'climate_zones')
+    # plot_col(p.full_df, 'log_precip')
+    # plot_col(p.full_df, 'log_altitude')
+    # plot_col(p.full_df, 'log_gdp')
+    # plot_col(p.full_df, 'log_min_to_market')
+    plot_col(p.full_df, 'slope')
+    plot_col(p.full_df, 'lon_sin')
+    plot_col(p.full_df, 'lat_sin')
 
 
 
@@ -733,29 +733,29 @@ if __name__ =='__main__':
     create_baseline_regression_data_task = p.add_task(create_baseline_regression_data)
     aggregate_crops_by_type_task = p.add_task(aggregate_crops_by_type)
     load_data_task = p.add_task(load_data)
-    #visualize_data_task = p.add_task(visualize_data)
+    visualize_data_task = p.add_task(visualize_data)
     create_results_table_task = p.add_task(create_results_table)
     run_linear_regressions_task = p.add_task(run_linear_regressions)
     run_polynomial_regressions_task = p.add_task(run_polynomial_regressions)
-    run_tree_based_models_task = p.add_task(run_tree_based_models)
+    #run_tree_based_models_task = p.add_task(run_tree_based_models)
 
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
     create_baseline_regression_data_task.run = 1
     aggregate_crops_by_type_task.run = 1
     load_data_task.run = 1
-    #visualize_data_task.run = 0
+    visualize_data_task.run = 1
     create_results_table_task.run = 1
     run_linear_regressions_task.run = 1
     run_polynomial_regressions_task.run = 0
-    run_tree_based_models_task.run = 1
+    #run_tree_based_models_task.run = 1
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
     create_baseline_regression_data_task.skip_existing = 1
     aggregate_crops_by_type_task.skip_existing = 1
     load_data_task.skip_existing = 0 # TODO: if skipped, p.df doesn't exist -- I have to re-load everytime :( what would be a good solution? Justin?
-    #visualize_data_task.skip_existing = 1
+    visualize_data_task.skip_existing = 1
     create_results_table_task.skip_existing = 1 # = 0 to reset the results table
 
 
