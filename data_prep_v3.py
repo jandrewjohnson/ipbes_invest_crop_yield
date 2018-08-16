@@ -227,8 +227,8 @@ def create_baseline_regression_data(p):
 
         df_land = df_land.dropna()
 
-        df_land['lat'] = ((df['pixel_id_float'] % 4320.)/4320 - .5) * 360.0
-        df_land['lon'] = ((df['pixel_id_float'] / 4320.).round()/2160 - .5) * 180.
+        df_land['lon'] = ((df['pixel_id_float'] % 4320.)/4320 - .5) * 360.0
+        df_land['lat'] = ((df['pixel_id_float'] / 4320.).round()/2160 - .5) * 180.
 
         df_land.to_csv(p.baseline_regression_data_path)
 
@@ -522,8 +522,7 @@ def load_data(p):
         df['precip_annualrange'] = df['precip_wet_mth'] - df['precip_dry_mth']
 
         # Lat/Lon
-        df['lon_sin'] = df['lon'].apply(lambda x:np.sin(np.radians(x)))
-        df['lat_sin'] = df['lat'].apply(lambda x:np.sin(np.radians(x)))
+        df['sin_lon'] = df['lon'].apply(lambda x:np.sin(np.radians(x)))
 
         # Encode properly NaNs
         df['slope'] = df['slope'].replace({0: np.nan})  # 143 NaN in 'slope' variable
@@ -705,9 +704,13 @@ def visualize_data(p):
     match_af = hb.ArrayFrame(p.country_ids_raster_path)
     zeros_array = np.zeros(match_af.size)
     zeros_df = pd.DataFrame(zeros_array)
-    agg_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
+    full_df = pd.merge(zeros_df, df_land, left_index=True, right_on='pixel_id', how='outer')
 
-    plot_col(agg_df, 'lat')
+    #plot_col(agg_df, 'lat')
+    #plot_col(agg_df, 'lon')
+    plot_col(full_df, 'lat')
+    plot_col(full_df, 'lon')
+
     # plot_col(p.full_df, 'log_gdp_per_capita')
     # plot_col(p.full_df, 'climate_zones')
     # plot_col(p.full_df, 'log_precip')
@@ -752,7 +755,7 @@ if __name__ =='__main__':
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
-    create_baseline_regression_data_task.skip_existing = 1
+    create_baseline_regression_data_task.skip_existing = 0
     aggregate_crops_by_type_task.skip_existing = 1
     load_data_task.skip_existing = 0 # TODO: if skipped, p.df doesn't exist -- I have to re-load everytime :( what would be a good solution? Justin?
     visualize_data_task.skip_existing = 1
