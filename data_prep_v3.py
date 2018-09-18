@@ -720,6 +720,7 @@ def visualize_data(p):
     plot_col(p.full_df, 'slope')
     plot_col(p.full_df, 'lon_sin')
     plot_col(p.full_df, 'lat_sin')
+    plot_col(p.full_df, 'lat_sin')
 
 
 
