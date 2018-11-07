@@ -722,6 +722,42 @@ def visualize_data(p):
     plot_col(p.full_df, 'lat_sin')
     plot_col(p.full_df, 'lat_sin')
 
+def create_calories_per_ha(p):
+
+    uris = hb.get_list_of_file_uris_recursively('earthstat/crop_production', filter_extensions='.tif', filter_strings='YieldPerHectare')
+
+    nutritional_content_uri = 'crop_nutritional_contents.csv'
+    nutritional_content_odict = hb.file_to_python_object(nutritional_content_uri, declare_type='DD')
+
+    total_calories_per_ha_masked_uri = os.path.join(p.cur_dir, 'total_calories_per_ha_masked.tif')
+    total_calories_per_ha_masked_array = np.zeros(hb.as_array(uris[0]).shape).astype(np.float64)
+
+    for uri in uris:
+        earthstat_name = hb.explode_uri(uri)['file_root'].split('_')[0]
+        kcal_per_ton = (float(nutritional_content_odict[earthstat_name]["Kcal/Kg"]) * 1000.0)
+        yield_per_ha = hb.as_array(uri).astype(np.float64)
+        output_array = yield_per_ha * kcal_per_ton
+
+        mask_uri = uri.replace('YieldPerHectare', 'HarvestedAreaFraction')
+        mask_array = hb.as_array(mask_uri)
+        mask_array = np.where(mask_array < 0.01, 0, 1)
+
+        output_array *= mask_array
+
+        print(output_array.dtype, earthstat_name)
+
+        output_uri = os.path.join(p.cur_dir, earthstat_name + '_calories_per_ha_masked.tif')
+        hb.save_array_as_geotiff(output_array, output_uri, uri, data_type=7)
+
+        total_calories_per_ha_masked_array += output_array
+
+    hb.save_array_as_geotiff(total_calories_per_ha_masked_array, total_calories_per_ha_masked_uri, uris[0], data_type=7)
+
+
+
+
+
+
 
 
 
@@ -742,6 +778,7 @@ if __name__ =='__main__':
     run_linear_regressions_task = p.add_task(run_linear_regressions)
     run_polynomial_regressions_task = p.add_task(run_polynomial_regressions)
     #run_tree_based_models_task = p.add_task(run_tree_based_models)
+    create_calories_per_ha_task = p.add_task(create_calories_per_ha)
 
     setup_dirs_task.run = 1
     link_base_data_task.run = 1
@@ -753,6 +790,7 @@ if __name__ =='__main__':
     run_linear_regressions_task.run = 1
     run_polynomial_regressions_task.run = 0
     #run_tree_based_models_task.run = 1
+    create_calories_per_ha_task.run = 1
 
     setup_dirs_task.skip_existing = 1
     link_base_data_task.skip_existing = 1
@@ -761,6 +799,7 @@ if __name__ =='__main__':
     load_data_task.skip_existing = 0 # TODO: if skipped, p.df doesn't exist -- I have to re-load everytime :( what would be a good solution? Justin?
     visualize_data_task.skip_existing = 1
     create_results_table_task.skip_existing = 1 # = 0 to reset the results table
+    create_calories_per_ha_task.skip_existing = 1 # = 0 to reset the results table
 
 
 
